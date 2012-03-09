@@ -8,8 +8,6 @@
  * OpenLayers cycle behavior
  */
 Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
-  console.log(options);
-
   var features =  data.openlayers.getLayersByClass('OpenLayers.Layer.Vector').pop().features;
       cycle = new Cycle(data.openlayers, features);
 
@@ -36,32 +34,47 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
     $('.toggle', controls).html('Play');
   });
 
-  $(cycle).bind('moved', function (evt) {
-    var from = evt.originalEvent.from,
-        to = evt.originalEvent.to;
+  $(cycle).bind('moveStart', function (evt) {
+    var feature = evt.originalEvent.feature;
+
+    if (typeof feature != 'undefined' && 
+        Drupal.openlayers.popup.hasOwnProperty('popupSelect')) {
+      Drupal.openlayers.popup.popupSelect.clickoutFeature(feature);
+    }
+  });
+
+  $(cycle).bind('moveEnd', function (evt) {
+    var feature = evt.originalEvent.feature;
 
     // TODO: openLayers_cycle gets loaded before the openlayers_popup
     //       behavior, We should defer this until popup has been loaded rather
     //       than skipping the 1st one.
-    if (Drupal.openlayers.popup.hasOwnProperty('popupSelect')) {
-      Drupal.openlayers.popup.popupSelect.clickFeature(to);
+    if (typeof feature != 'undefined' &&
+        Drupal.openlayers.popup.hasOwnProperty('popupSelect')) {
+      Drupal.openlayers.popup.popupSelect.select(feature);
+      Drupal.openlayers.popup.popupSelect.events.register('click', cycle, cycle.pause);
     }
   });
+
+  data.openlayers.events.register('click', cycle, cycle.pause); 
 
   cycle.play();
 });
 
 var Cycle = function (map, items, options) {
-  var _cycle = {},
-      _items = items,
-      _map = map,
-      _options = options || {},
-      _timer,
-      _playing = false,
-      _pos = _items.length;
+  var p = this,
+      _cycle = {};
+
+  p.items = items;
+  p.map = map;
+  p.options = options || {};
+  p.timer = null;
+  p.playing = false;
+  p.moving = false;
+  p.pos = p.items.length;
 
   // Overriding default options.
-  _options = $.extend({
+  p.options = $.extend({
     // Default cycle options.
     duration: 6000,
 
@@ -74,44 +87,63 @@ var Cycle = function (map, items, options) {
   }, options);
 
   // Setting map options.
-  _map.setOptions(_options.map);
+  p.map.setOptions(p.options.map);
 
+  /**
+   * Start cycle.
+   */
   _cycle.play = function () {
-    _playing = true;
+    p.playing = true;
     this.next();
 
     $(this).triggerHandler('play');
   };
 
+  /**
+   * Pause cycle.
+   */
   _cycle.pause = function () {
-    clearTimeout(_timer);
-    _playing = false;
+    clearTimeout(p.timer);
+    p.playing = false;
 
     $(this).triggerHandler('pause');
   };
 
+  /**
+   * Step cycle forwards.
+   */
   _cycle.next = function () {
-    _pos = (_pos >= _items.length - 1) ? 0 : _pos + 1;
-    this.go();
+    var from = p.pos,
+        to = (p.pos >= p.items.length - 1) ? 0 : p.pos + 1;
 
-    if (_playing) {
-      clearTimeout(_timer);
-      _timer = window.setTimeout($.proxy(this, 'next'), _options.duration);
+    p.go(from, to);
+
+    if (p.playing) {
+      clearTimeout(p.timer);
+      p.timer = window.setTimeout($.proxy(this, 'next'), p.options.duration);
     }
   };
 
+  /**
+   * Step cycle backwards.
+   */
   _cycle.previous = function () {
-    _pos = (_pos <= 0) ? _items.length - 1 : _pos - 1;
-    this.go();
+    var from = p.pos,
+        to = (p.pos <= 0) ? p.items.length - 1 : p.pos - 1;
 
-    if (_playing) {
-      clearTimeout(_timer);
-      _timer = window.setTimeout($.proxy(this, 'next'), _options.duration);
+    p.go(from, to);
+
+    if (p.playing) {
+      clearTimeout(p.timer);
+      p.timer = window.setTimeout($.proxy(this, 'next'), p.options.duration);
     }
   };
 
+  /**
+   * Convenience method to toggle play/pause based on internal state.
+   */
   _cycle.toggle = function () {
-    if (_playing) {
+    if (p.playing) {
       this.pause();
     }
     else {
@@ -119,23 +151,132 @@ var Cycle = function (map, items, options) {
     }
   };
 
-  _cycle.go = function () {
-    var point = _items[_pos].geometry,
-        lonlat = new OpenLayers.LonLat(point.x, point.y).transform(
-          new OpenLayers.Projection('EPSG:4326'),
-          new OpenLayers.Projection('EPSG:900913')
-        );
+  /**
+   * Trigger map to pan to a new point (private function for internal use).
+   *
+   * @param from
+   *    Index of the feature moving from.
+   * @param to
+   *    Index of the feature moving to.
+   */
+  p.go = function (from, to) {
+    var point = p.items[to].geometry,
+        lonlat = new OpenLayers.LonLat(point.x, point.y),
+        fromFeature = p.items[from],
+        toFeature = p.items[to];
 
-    _map.panTo(lonlat);
+    // TODO: Probably shouldn't be declaring new functions everytime go() is
+    //       called.
+    var callbacks = {
+      start: OpenLayers.Function.bind(function (map) {
+        p.moving = true;
+        $(_cycle).triggerHandler({
+          type: 'moveStart',
+          feature: fromFeature
+        });
+      }, this),
 
-    $(this).triggerHandler({
-      type: 'moved',
-      from: _items[_pos - 1],
-      to: _items[_pos]
-    });
+      finish: OpenLayers.Function.bind(function (map) {
+        $(_cycle).triggerHandler({
+          type: 'moveEnd',
+          feature: toFeature
+        });
+        p.moving = false;
+      }, this)
+    };
+
+    if (!p.moving) {
+      // Custom implementation of OpenLayers.panTo().
+      asyncPanTo.call(p.map, lonlat, callbacks);
+      p.pos = to;
+    }
   };
 
   return _cycle;
 };
 
+/**
+ * Custom implementation of OpenLayers.panTo().
+ * Takes a second parameter which can contain start and finish callbacks which
+ * will get called at the start and end of the pan action respectively.
+ *
+ * This can be called on any OpenLayers.Map() object. Eg: 
+ *    asyncPanTo.call(new Openlayers.Map({ ... }), { start: ..., end: ... });
+ *
+ * @param lonlat
+ *    OpenLayers.LonLat() : The co-ordinates to pan the map to.
+ *
+ * @param callbacks
+ *    An object containing start and/or finish properties which are functions to
+ *    be called when the pan action begins and ends.
+ */
+var asyncPanTo = function(lonlat, callbacks) {
+  if (this.panMethod && this.getExtent().scale(this.panRatio).containsLonLat(lonlat)) {
+    if (!this.panTween) {
+      this.panTween = new OpenLayers.Tween(this.panMethod);
+    }
+    var center = this.getCachedCenter();
+
+    // center will not change, don't do nothing
+    if (lonlat.equals(center)) {
+      // Ensure callbacks get called anyway.
+      if (callbacks.hasOwnProperty('start')) {
+        callbacks.start(this);
+      }
+      if (callbacks.hasOwnProperty('finish')) {
+        callbacks.finish(this);
+      }
+      return;
+    }
+
+    var from = this.getPixelFromLonLat(center);
+    var to = this.getPixelFromLonLat(lonlat);
+    var vector = { x: to.x - from.x, y: to.y - from.y };
+    var last = { x: 0, y: 0 };
+
+    this.panTween.start( { x: 0, y: 0 }, vector, this.panDuration, {
+      callbacks: {
+
+        start: OpenLayers.Function.bind(function(px) {
+          if (callbacks.hasOwnProperty('start')) {
+            callbacks.start(this);
+          }
+        }, this),
+
+        eachStep: OpenLayers.Function.bind(function(px) {
+          var x = px.x - last.x,
+              y = px.y - last.y;
+          this.moveByPx(x, y);
+          last.x = Math.round(px.x);
+          last.y = Math.round(px.y);
+        }, this),
+
+        done: OpenLayers.Function.bind(function(px) {
+          this.moveTo(lonlat);
+          this.dragging = false;
+          this.events.triggerEvent("moveend");
+
+          if (callbacks.hasOwnProperty('finish')) {
+            callbacks.finish(this);
+          }
+        }, this)
+
+      }
+    });
+  } else {
+    // Start callback.
+    if (callbacks.hasOwnProperty('start')) {
+      callbacks.start(this);
+    }
+
+    this.setCenter(lonlat);
+
+    // End callback.
+    if (callbacks.hasOwnProperty('finish')) {
+      callbacks.finish(this);
+    }
+  }
+};
+
 }(jQuery));
+
