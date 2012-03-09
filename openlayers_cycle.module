@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * Implements hook_openlayers_behaviors().
+ */
+function openlayers_cycle_openlayers_behaviors() {
+  return array(
+    'openlayers_cycle' => array(
+      'title' => t('OpenLayers cycle'),
+      'description' => t(''),
+      'behavior' => array(
+        'path' => drupal_get_path('module', 'openlayers_cycle') .'/behaviors',
+        'file' =>  'openlayers_cycle.inc',
+        'class' => 'openlayers_cycle',
+        'parent' => 'openlayers_behavior',
+      ),
+    ),
+  );
+}
