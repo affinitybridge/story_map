@@ -10,45 +10,45 @@
 Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
   console.log(options);
 
-  var layer = data.map.behaviors.openlayers_cycle.step_layer = 'industry_cycle_openlayers_1';
-  if (data.map.layers.hasOwnProperty(layer)) {
-    var features =  data.map.layers[layer].features,
-        cycle = new Cycle(data.openlayers, features);
+  var features =  data.openlayers.getLayersByClass('OpenLayers.Layer.Vector').pop().features;
+      cycle = new Cycle(data.openlayers, features);
 
-    // Creating controls.
-    // TODO: This is kind of ghetto, should probably figureout a better way/place
-    //      to to this.
-    var controls = $('<div>')
-          .addClass('openlayers-cycle-controls')
-          .append($('<a>').addClass('toggle').html('Pause'))
-          .append($('<a>').addClass('next').html('Next'))
-          .append($('<a>').addClass('previous').html('Previous'))
-          .appendTo($(data.openlayers.div).parent().parent());
+  // Creating controls.
+  // TODO: This is kind of ghetto, should probably figureout a better way/place
+  //      to to this.
+  var controls = $('<div>')
+        .addClass('openlayers-cycle-controls')
+        .append($('<a>').addClass('toggle').html('Pause'))
+        .append($('<a>').addClass('next').html('Next'))
+        .append($('<a>').addClass('previous').html('Previous'))
+        .appendTo($(data.openlayers.div).parent().parent());
 
-    // Binding events to buttons.
-    $('.toggle', controls).click($.proxy(cycle, 'toggle'));
-    $('.previous', controls).click($.proxy(cycle, 'previous'));
-    $('.next', controls).click($.proxy(cycle, 'next'));
+  // Binding events to buttons.
+  $('.toggle', controls).click($.proxy(cycle, 'toggle'));
+  $('.previous', controls).click($.proxy(cycle, 'previous'));
+  $('.next', controls).click($.proxy(cycle, 'next'));
 
-    $(cycle).bind('play', function () {
-      $('.toggle', controls).html('Pause');
-    });
+  $(cycle).bind('play', function () {
+    $('.toggle', controls).html('Pause');
+  });
 
-    $(cycle).bind('pause', function () {
-      $('.toggle', controls).html('Play');
-    });
+  $(cycle).bind('pause', function () {
+    $('.toggle', controls).html('Play');
+  });
 
-    $(cycle).bind('moved', function (evt) {
-      var from = evt.originalEvent.from,
-          to = evt.originalEvent.from;
-      if (typeof from != 'undefined') {
-        //Drupal.openlayers.popup.popupSelect.unselect(from);
-      }
-      //Drupal.openlayers.popup.popupSelect.select(to);
-    });
+  $(cycle).bind('moved', function (evt) {
+    var from = evt.originalEvent.from,
+        to = evt.originalEvent.to;
 
-    cycle.play();
-  }
+    // TODO: openLayers_cycle gets loaded before the openlayers_popup
+    //       behavior, We should defer this until popup has been loaded rather
+    //       than skipping the 1st one.
+    if (Drupal.openlayers.popup.hasOwnProperty('popupSelect')) {
+      Drupal.openlayers.popup.popupSelect.clickFeature(to);
+    }
+  });
+
+  cycle.play();
 });
 
 var Cycle = function (map, items, options) {
@@ -120,7 +120,7 @@ var Cycle = function (map, items, options) {
   };
 
   _cycle.go = function () {
-    var point = Drupal.openlayers.objectFromFeature(_items[_pos]).geometry,
+    var point = _items[_pos].geometry,
         lonlat = new OpenLayers.LonLat(point.x, point.y).transform(
           new OpenLayers.Projection('EPSG:4326'),
           new OpenLayers.Projection('EPSG:900913')
