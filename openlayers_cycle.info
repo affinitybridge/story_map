@@ -3,3 +3,4 @@ description = ""
 core = 7.x
 package = OpenLayers
 dependencies[] = openlayers
+files[] = includes/story.inc

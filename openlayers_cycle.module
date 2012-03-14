@@ -1,6 +1,194 @@
 <?php
 
 /**
+ * Implements hook_ctools_plugin_api().
+ */
+function openlayers_cycle_ctools_plugin_api($module, $api) {
+  if ($module == "openlayers") {
+    switch ($api) {
+      case 'openlayers_layers':
+        return array('version' => 1);
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function openlayers_cycle_entity_info() {
+  $info['openlayers_cycle_story'] = array(
+    'label' => t('Story'),
+    'controller class' => 'EntityAPIControllerExportable',
+    'metadata controller class' => FALSE,
+    'entity class' => 'OpenlayersCycleStory',
+    'base table' => 'openlayers_cycle_story',
+    'module' => 'openlayers_cycle',
+    'exportable' => TRUE,
+    'entity keys' => array(
+      'id' => 'id',
+      'label' => 'name',
+      'name' => 'machine_name',
+    ),
+    'access callback' => 'openlayers_cycle_story_access',
+    'admin ui' => array(
+      'path' => 'admin/stories',
+      'file' => 'openlayers_cycle.admin.inc',
+      'controller class' => 'OpenlayersCycleStoryUIController',
+      'menu wildcard' => '%openlayers_cycle_story',
+    ),
+    'label callback' => 'entity_class_label',
+    'uri callback' => 'entity_class_uri',
+  );
+
+  return $info;
+}
+
+/**
+ * Implements hook_entity_property_info().
+ */
+function openlayers_cycle_entity_property_info() {
+  $info['openlayers_cycle_story']['properties'] = array(
+    'id' => array(
+      'label' => t('ID'),
+      'type' => 'integer',
+      'description' => t('The primary identifier for a story.'),
+      'schema field' => 'id',
+      'validation callback' => 'entity_metadata_validate_integer_positive',
+    ),
+    'name' => array(
+      'label' => t('Name'),
+      'type' => 'text',
+      'description' => t('The displayed name for a story.'),
+      'schema field' => 'name',
+      'required' => TRUE,
+    ),
+    'machine_name' => array(
+      'label' => t('Machine name'),
+      'type' => 'token',
+      'description' => t('The internally used machine name for a story.'),
+      'schema field' => 'machine_name',
+      'required' => TRUE,
+    ),
+    'queue' => array(
+      'label' => t('Story queue'),
+      'type' => 'text',
+      'description' => t('The internally used machine name referencing an existing node queue.'),
+      'schema field' => 'queue',
+      'required' => TRUE,
+    ),
+    'description' => array(
+      'label' => t('Description'),
+      'type' => 'text',
+      'description' => t('The displayed description of a story.'),
+      'schema field' => 'description',
+      'sanitize' => 'filter_xss',
+    ),
+    'options' => array(
+    
+    ),
+    'enabled' => array(
+      'label' => t('Enabled'),
+      'type' => 'boolean',
+      'description' => t('A flag indicating whether the story is enabled.'),
+      'schema field' => 'enabled',
+    ),
+  );
+
+  return $info;
+}
+
+function openlayers_cycle_story_access($op, $type = NULL, $account = NULL) {
+  return user_access('administer content', $account);
+}
+
+/**
+ * Determine if the machine name is in use.
+ */
+function openlayers_cycle_story_machine_name_exists($machine_name) {
+  $query = 'SELECT 1 FROM {openlayers_cycle_story} WHERE machine_name = :machine_name';
+  $exists = db_query_range($query, 0, 1, array(':machine_name' => $machine_name))->fetchField();
+  return $exists;
+}
+
+
+function openlayers_cycle_story_load($name) { 
+  return openlayers_cycle_get_stories($name);
+}
+
+function openlayers_cycle_get_stories($name = NULL) {
+  $stories = entity_load_multiple_by_name('openlayers_cycle_story', isset($name) ? array($name) : FALSE);
+  return isset($name) ? reset($stories) : $stories;
+}
+
+function openlayers_cycle_story_page_title($story) {
+  return $story->name;
+}
+
+function openlayers_cycle_story_page_view($story, $view_mode = 'full') {
+  $controller = entity_get_controller('openlayers_cycle_story');
+  $content = $controller->view(array($story->internalIdentifier() => $story));
+
+  return $content;
+}
+
+/**
+ * Implements hook_openlayers_cycle_story_presave().
+ */
+function openlayers_cycle_openlayers_cycle_story_presave($story) {
+  // Inserting.
+  if ($story->is_new) {
+    $queue = array(
+      'name' => $story->machine_name,
+      'title' => $story->name,
+      'subqueue_title' => $story->name,
+      'size' => 0,
+      'link' => t('Add to @story.', array('@story' => $story->name)),
+      'link_remove' => t('Remove from @story.', array('@story' => $story->name)),
+      'owner' => 'nodequeue',
+      'show_in_links' => (int) TRUE,
+      'show_in_tab' => (int) TRUE,
+      'show_in_ui' => (int) FALSE,
+      'reverse' => (int) FALSE,
+      'reference' => (int) FALSE,
+      'i18n' => (int) FALSE,
+      'types' => array(),
+      'roles' => array(),
+      'add_subqueue' => array(
+        $story->name,
+      ),
+    );
+    if (isset($story->options['queue'])) {
+      $queue = $story->options['queue'] + $queue;
+    }
+
+    $queue = (object) $queue;
+    $story->qid = nodequeue_save($queue);
+    $story->queue = $story->machine_name;
+  }
+}
+
+/**
+ * Implements hook_openlayers_cycle_story_delete().
+ */
+function openlayers_cycle_openlayers_cycle_story_delete($story) {
+  $queue = nodequeue_load_queue_by_name($story->queue);
+  nodequeue_delete($queue->qid);
+}
+
+/**
+ *
+ */
+function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langcode) {
+  $map = openlayers_map_load($story->options['map']);
+
+  // TODO: Do stuff to $map here.
+  debug($map, 'openlayers_cycle_openlayers_cycle_story_view');
+  $map->data['haahaha'] = 'haha';
+
+  $story->content['map']['#markup'] = openlayers_render_map($map);
+}
+
+/**
  * Implements hook_openlayers_behaviors().
  */
 function openlayers_cycle_openlayers_behaviors() {
@@ -17,3 +205,48 @@ function openlayers_cycle_openlayers_behaviors() {
     ),
   );
 }
+
+/**
+ * Implements hook_openlayers_layers().
+ */
+/*
+function openlayers_cycle_openlayers_layers() {
+  $layers = array();
+
+  foreach ($wrappers as $wrapper) {
+    $layer = new stdClass();
+    $layer->api_version = 1;
+    $layer->name = $wrapper->machine_name->value();
+    $layer->title = t('Tilestache: %title', array('%title' => $wrapper->label()));
+    $layer->description = $wrapper->description->value();
+
+    // Define $layer->data depending on layer type.
+    // Mapping Tilestache layer subclass => Openlayers layer type.
+    switch ($wrapper->class->value()) {
+      case 'Mapnik':
+      case 'Composite':
+      case 'MBTiles':
+        $layer->data = array(
+          'baselayer' => FALSE,
+          // TODO: Determine whether this should be/is configurable.
+          'projection' => array('900913'),
+          'layer_type' => 'openlayers_layer_type_raw',
+          'url' => $tilestache_host . $wrapper->machine_name->value() . '/${z}/${x}/${y}.png',
+          'wrapDateLine' => TRUE,
+        );
+
+        break;
+
+      case 'UTFGrid':
+      default:
+        break;
+    }
+
+    if (isset($layer->data)) {
+      $layers[$layer->name] = $layer;
+    }
+  }
+
+  return $layers;
+}
+ */
