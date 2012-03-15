@@ -227,8 +227,10 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
 
     $features[$index] = array(
       'projection' => '4326',
-      'content' => drupal_render(node_view($wrapper->value(), 'openlayers_cycle_story_popup')),
       'wkt' => 'POINT(' . $geodata['lon'] . ' ' . $geodata['lat'] . ')',
+      'attributes' => array(
+        'content' => drupal_render(node_view($wrapper->value(), 'openlayers_cycle_story_popup')),
+      ),
     );
   }
 
@@ -273,6 +275,9 @@ function openlayers_cycle_openlayers_layers() {
   $layer->data = array(
     'projection' => array('4326'),
     'layer_type' => 'openlayers_layer_type_raw',
+    'options' => array(
+      'layers' => array(),
+    ),
   );
 
   return array($layer->name => $layer);

@@ -12,6 +12,8 @@ class openlayers_cycle extends openlayers_behavior {
         $map['layers']['openlayers_cycle_story_data']['features'] = $features;
         drupal_add_js(drupal_get_path('module', 'openlayers_cycle') . '/lib/cycle.js');
         drupal_add_js(drupal_get_path('module', 'openlayers_cycle') . '/behaviors/openlayers_cycle.js');
+
+        $this->options['layers']['openlayers_cycle_story_data'] = 'openlayers_cycle_story_data';
       }
     }
 
