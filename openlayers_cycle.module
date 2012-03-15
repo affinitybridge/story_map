@@ -44,6 +44,21 @@ function openlayers_cycle_entity_info() {
 }
 
 /**
+ * Implements hook_entity_info_alter().
+ */
+function openlayers_cycle_entity_info_alter(&$entity_info) {
+  $view_mode = array(
+    'label' => t('Openlayers story popup'),
+    'custom settings' => FALSE,
+  );
+  foreach ($entity_info as $entity => &$info) {
+    if (isset($info['view modes']) && !empty($info['view modes'])) {
+      $info['view modes']['openlayers_cycle_story_popup'] = $view_mode;
+    }
+  }
+}
+
+/**
  * Implements hook_entity_property_info().
  */
 function openlayers_cycle_entity_property_info() {
@@ -176,14 +191,52 @@ function openlayers_cycle_openlayers_cycle_story_delete($story) {
 }
 
 /**
- *
+ * Implements hook_openlayers_cycle_story_view().
+ * Prepares features stored in nodequeue and passes them to the openlayers map.
  */
 function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langcode) {
   $map = openlayers_map_load($story->options['map']);
 
-  // TODO: Do stuff to $map here.
-  debug($map, 'openlayers_cycle_openlayers_cycle_story_view');
-  $map->data['haahaha'] = 'haha';
+  $queue = nodequeue_load_queue_by_name($story->queue);
+  // There should never be more than one subqueue, but good to check just in
+  // case.
+  if ($queue->subqueues != 1) {
+    // Render map anyway.
+    $story->content['map']['#markup'] = openlayers_render_map($map);
+    return;
+  }
+
+  // Crazy dance to get the contents of the queue.
+  $sqids = nodequeue_load_subqueues_by_queue($queue->qid);
+  list($sqid) = array_keys($sqids);
+  // Load all the nodes.
+  $nodes = nodequeue_load_nodes($sqid, FALSE, 0, FALSE);
+
+  $features = array();
+  foreach (entity_metadata_wrapper("list<node>", $nodes) as $index => $wrapper) {
+    // TODO: Need to know which field on node is a geofield.
+    //$geofield = $story->options['geofields'][$node->type];
+    $geofield = 'field_geodata';
+    $geodata = $wrapper->{$geofield}->value();
+
+    // Skip item id geodata is empty/invalid.
+    if (empty($geodata)) {
+      // TODO: Report this?
+      continue;
+    }
+
+    $features[$index] = array(
+      'projection' => '4326',
+      'content' => drupal_render(node_view($wrapper->value(), 'openlayers_cycle_story_popup')),
+      'wkt' => 'POINT(' . $geodata['lon'] . ' ' . $geodata['lat'] . ')',
+    );
+  }
+
+  if (!empty($features)) {
+    // Pushing the features through to the openlayers cycle behaviour which
+    // will inject them into the placeholder layer.
+    $map->data['openlayers_cycle_story_features'] = $features;
+  }
 
   $story->content['map']['#markup'] = openlayers_render_map($map);
 }
@@ -209,44 +262,18 @@ function openlayers_cycle_openlayers_behaviors() {
 /**
  * Implements hook_openlayers_layers().
  */
-/*
 function openlayers_cycle_openlayers_layers() {
-  $layers = array();
+  $layer = new stdClass();
 
-  foreach ($wrappers as $wrapper) {
-    $layer = new stdClass();
-    $layer->api_version = 1;
-    $layer->name = $wrapper->machine_name->value();
-    $layer->title = t('Tilestache: %title', array('%title' => $wrapper->label()));
-    $layer->description = $wrapper->description->value();
+  $layer->api_version = 1;
+  $layer->name = 'openlayers_cycle_story_data';
+  $layer->title = t('OpenLayers Cycle story data.');
+  $layer->description = t('Placeholder layer for OpenLayers Cycle story data.');
 
-    // Define $layer->data depending on layer type.
-    // Mapping Tilestache layer subclass => Openlayers layer type.
-    switch ($wrapper->class->value()) {
-      case 'Mapnik':
-      case 'Composite':
-      case 'MBTiles':
-        $layer->data = array(
-          'baselayer' => FALSE,
-          // TODO: Determine whether this should be/is configurable.
-          'projection' => array('900913'),
-          'layer_type' => 'openlayers_layer_type_raw',
-          'url' => $tilestache_host . $wrapper->machine_name->value() . '/${z}/${x}/${y}.png',
-          'wrapDateLine' => TRUE,
-        );
+  $layer->data = array(
+    'projection' => array('4326'),
+    'layer_type' => 'openlayers_layer_type_raw',
+  );
 
-        break;
-
-      case 'UTFGrid':
-      default:
-        break;
-    }
-
-    if (isset($layer->data)) {
-      $layers[$layer->name] = $layer;
-    }
-  }
-
-  return $layers;
+  return array($layer->name => $layer);
 }
- */
