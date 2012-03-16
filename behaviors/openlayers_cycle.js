@@ -87,8 +87,7 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
         lonlat = new OpenLayers.LonLat(point.x, point.y),
         moving = false;
 
-    // TODO: Probably shouldn't be declaring new functions everytime go() is
-    //       called.
+    // Panning callbacks.
     var callbacks = {
       start: OpenLayers.Function.bind(function (map) {
         var feature = features[from];
@@ -102,7 +101,6 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
       finish: OpenLayers.Function.bind(function (map) {
         var feature = features[to];
 
-        feature.popup.closeOnMove = true;
         feature.popup.panIntoView();
         feature.popup.show();
 
