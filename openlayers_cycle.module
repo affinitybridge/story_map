@@ -1,6 +1,32 @@
 <?php
 
 /**
+ * Implements hook_menu().
+ */
+function openlayers_cycle_menu() {
+  $items = array();
+
+  $items['admin/config/openlayers-cycle'] = array(
+    'title' => 'OpenLayers Cycle',
+    'description' => 'OpenLayers Cycle global configuration.',
+    'position' => 'right',
+    'weight' => -20,
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/config/openlayers-cycle/manage'] = array(
+    'title' => 'Manage OpenLayers Cycle configuration.',
+    'description' => 'Manage active Tilestache configuration.',
+    'access arguments' => array('administer site configuration'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('openlayers_cycle_config_manage_form'),
+    'file' => 'openlayers_cycle.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_ctools_plugin_api().
  */
 function openlayers_cycle_ctools_plugin_api($module, $api) {
@@ -144,6 +170,9 @@ function openlayers_cycle_get_stories($name = NULL) {
 function openlayers_cycle_openlayers_cycle_story_presave($story) {
   // Inserting.
   if ($story->is_new) {
+    $default_geofields = openlayers_cycle_get_default_geofields();
+    $types = array_keys($default_geofields);
+
     $queue = array(
       'name' => $story->machine_name,
       'title' => $story->name,
@@ -158,7 +187,7 @@ function openlayers_cycle_openlayers_cycle_story_presave($story) {
       'reverse' => (int) FALSE,
       'reference' => (int) FALSE,
       'i18n' => (int) FALSE,
-      'types' => array(),
+      'types' => array_combine($types, $types),
       'roles' => array(),
       'add_subqueue' => array(
         $story->name,
@@ -207,8 +236,7 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
   $features = array();
   foreach (entity_metadata_wrapper("list<node>", $nodes) as $index => $wrapper) {
     // TODO: Need to know which field on node is a geofield.
-    //$geofield = $story->options['geofields'][$node->type];
-    $geofield = 'field_geodata';
+    $geofield = openlayers_cycle_get_default_geofields($node->type);
     $geodata = $wrapper->{$geofield}->value();
 
     // Skip item id geodata is empty/invalid.
@@ -273,4 +301,42 @@ function openlayers_cycle_openlayers_layers() {
   );
 
   return array($layer->name => $layer);
+}
+
+/**
+ * Returns the default geofield to use with the specified content type.
+ * Returns FALSE if the specified content type hasn't had a geofield configured.
+ */
+function openlayers_cycle_get_default_geofields($type = NULL) {
+  $fields = &drupal_static(__FUNCTION__);
+
+  if (!isset($fields)) {
+    $fields = variable_get('openlayers_cycle_geofields', array());
+  }
+
+  if ($type) {
+    return isset($fields[$type]) ? $fields[$type] : FALSE;
+  }
+
+  return $fields;
+}
+
+/**
+ * Returns an array keyed by node types that have one or more geofields
+ * attached. Each item is an array containing the names of the geofields 
+ * attached to that node type.
+ */
+function openlayers_cycle_get_all_geofields() {
+  $fields = array();
+  foreach (field_info_fields() as $name => $info) {
+    if ($info['type'] == 'geofield') {
+      if (isset($info['bundles']['node'])) {
+        foreach ($info['bundles']['node'] as $type) {
+          $fields[$type][$name] = $name;
+        }
+      }
+    }
+  }
+
+  return $fields;
 }
