@@ -42,15 +42,23 @@ function openlayers_cycle_story_form($form, &$form_state, $story, $op = 'edit') 
     '#options' => $types,
     '#default_value' => isset($story->options['queue']['types']) ? $story->options['queue']['types'] : array(),
     '#required' => TRUE,
-    '#description' => t('Select the .'),
+    '#description' => t('Select the node types allowed to be in this story.'),
   );
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save profile type'),
-    '#weight' => 40,
+    '#value' => t('Save'),
   );
+
+  if ($op == 'edit') {
+    $form['actions']['delete'] = array(
+      '#type' => 'link',
+      '#title' => t('Delete'),
+      '#href' => "story/{$story->identifier()}/delete",
+      '#weight' => 1,
+    );
+  }
 
   return $form;
 }
@@ -71,12 +79,28 @@ function openlayers_cycle_story_form_submit($form, &$form_state) {
     $definition['options']['queue']['types'] = $values['types'];
   }
 
-
   if (!($story = entity_create('openlayers_cycle_story', $definition))) {
     // TODO: Handle error.
     return;
   }
   $story->save();
 
-  $form_state['redirect'] = 'admin/stories';
+  $form_state['redirect'] = "story/{$story->identifier()}/edit/sequence";
+}
+
+function openlayers_cycle_story_page_title($story) {
+  return $story->name;
+}
+
+function openlayers_cycle_story_page_view($story, $view_mode = 'full') {
+  $controller = entity_get_controller('openlayers_cycle_story');
+  $content = $controller->view(array($story->internalIdentifier() => $story));
+
+  return $content;
+}
+
+function openlayers_cycle_story_manage_sequence($story) {
+  module_load_include('inc', 'nodequeue', 'includes/nodequeue.admin');
+  $queue = nodequeue_load_queue_by_name($story->queue);
+  return nodequeue_admin_view($queue);
 }

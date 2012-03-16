@@ -39,19 +39,183 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
    * Overridden to provide a page callback for regular story view.
    */
   public function hook_menu() {
+    $items = array();
+    $id_count = count(explode('/', $this->path));
     $wildcard = isset($this->entityInfo['admin ui']['menu wildcard']) ? $this->entityInfo['admin ui']['menu wildcard'] : '%entity_object';
-    $items = parent::hook_menu();
+    $plural_label = isset($this->entityInfo['plural label']) ? $this->entityInfo['plural label'] : $this->entityInfo['label'] . 's';
 
-    $items["story/$wildcard"] = array(
-      'title callback' => 'openlayers_cycle_story_page_title',
-      'title arguments' => array(1),
-      'page callback' => 'openlayers_cycle_story_page_view',
-      'page arguments' => array(1),
-      'access callback' => 'openlayers_cycle_story_access',
-      'access arguments' => array('view', 1),
-      'type' => MENU_CALLBACK,
+    $items[$this->path] = array(
+      'title' => $plural_label,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array($this->entityType . '_overview_form', $this->entityType),
+      'description' => 'Manage ' . $plural_label . '.',
+      'access callback' => 'entity_access',
+      'access arguments' => array('view', $this->entityType),
+      'file' => 'includes/entity.ui.inc',
     );
 
+    $items[$this->path . '/add'] = array(
+      'title callback' => 'entity_ui_get_action_title',
+      'title arguments' => array('add', $this->entityType),
+      'page callback' => 'entity_ui_get_form',
+      'page arguments' => array($this->entityType, NULL, 'add'),
+      'access callback' => 'entity_access',
+      'access arguments' => array('create', $this->entityType),
+      'type' => MENU_LOCAL_ACTION,
+    );
+
+    $items[$this->path . '/' . $wildcard] = array(
+      'title callback' => 'openlayers_cycle_story_page_title',
+      'title arguments' => array($id_count),
+      'page callback' => 'openlayers_cycle_story_page_view',
+      'page arguments' => array($id_count),
+      'access callback' => 'entity_access',
+      'access arguments' => array('view', $this->entityType, $id_count),
+      'type' => MENU_NORMAL_ITEM,
+    );
+
+    $items[$this->path . '/' . $wildcard . '/view'] = array(
+      'title' => t('View'),
+      'access callback' => 'entity_access',
+      'access arguments' => array('view', $this->entityType, $id_count),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    );
+
+    $items[$this->path . '/' . $wildcard . '/edit'] = array(
+      'title' => 'Edit',
+      'page callback' => 'entity_ui_get_form',
+      'page arguments' => array($this->entityType, $id_count),
+      'load arguments' => array($this->entityType),
+      'access callback' => 'entity_access',
+      'access arguments' => array('update', $this->entityType, $id_count),
+      'weight' => 1,
+      'type' => MENU_LOCAL_TASK,
+    );
+
+    $items[$this->path . '/' . $wildcard . '/edit/sequence'] = array(
+      'title' => t('Edit story sequence'),
+      'page callback' => 'openlayers_cycle_story_manage_sequence',
+      'page arguments' => array($id_count),
+      'access callback' => 'entity_access',
+      'access arguments' => array('update', $this->entityType, $id_count),
+      'type' => MENU_LOCAL_ACTION,
+    );
+
+    // Clone form, a special case for the edit form.
+    $items[$this->path . '/' . $wildcard . '/clone'] = array(
+      'title' => 'Clone',
+      'page callback' => 'entity_ui_get_form',
+      'page arguments' => array($this->entityType, $id_count, 'clone'),
+      'load arguments' => array($this->entityType),
+      'access callback' => 'entity_access',
+      'access arguments' => array('create', $this->entityType),
+      'weight' => 2,
+      'type' => MENU_LOCAL_TASK,
+    );
+
+    // Menu item for operations like revert and delete.
+    $items[$this->path . '/' . $wildcard . '/%'] = array(
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array($this->entityType . '_operation_form', $this->entityType, $id_count, $id_count + 1),
+      'load arguments' => array($this->entityType),
+      'access callback' => 'entity_access',
+      'access arguments' => array('delete', $this->entityType, $id_count),
+      'file' => 'includes/entity.ui.inc',
+    );
+
+    // TODO: Importing is broken.
+    /*
+    if (!empty($this->entityInfo['exportable'])) {
+      // Menu item for importing an entity.
+      $items[$this->path . '/import'] = array(
+        'title callback' => 'entity_ui_get_action_title',
+        'title arguments' => array('import', $this->entityType),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array($this->entityType . '_operation_form', $this->entityType, NULL, 'import'),
+        'access callback' => 'entity_access',
+        'access arguments' => array('create', $this->entityType),
+        'file' => 'includes/entity.ui.inc',
+        'type' => MENU_LOCAL_ACTION,
+      );
+    }
+     */
+
+    if (!empty($this->entityInfo['admin ui']['file'])) {
+      // Add in the include file for the entity form.
+      foreach (array("/$wildcard", "/$wildcard/edit", "/$wildcard/edit/sequence", "/$wildcard/clone", '/add') as $path_end) {
+        $items[$this->path . $path_end]['file'] = $this->entityInfo['admin ui']['file'];
+        $items[$this->path . $path_end]['file path'] = isset($this->entityInfo['admin ui']['file path']) ? $this->entityInfo['admin ui']['file path'] : drupal_get_path('module', $this->entityInfo['module']);
+      }
+    }
     return $items;
+  }
+
+  /**
+   * Overridden to fix paths.
+   *
+   * Generates the row for the passed entity and may be overridden in order to
+   * customize the rows.
+   *
+   * @param $additional_cols
+   *   Additional columns to be added after the entity label column.
+   */
+  protected function overviewTableRow($conditions, $id, $entity, $additional_cols = array()) {
+    $entity_uri = entity_uri($this->entityType, $entity);
+
+    $row[] = array('data' => array(
+      '#theme' => 'entity_ui_overview_item',
+      '#label' => entity_label($this->entityType, $entity),
+      '#name' => !empty($this->entityInfo['exportable']) ? entity_id($this->entityType, $entity) : FALSE,
+      '#url' => $entity_uri ? $entity_uri : FALSE,
+      '#entity_type' => $this->entityType),
+    );
+
+    // Add in any passed additional cols.
+    foreach ($additional_cols as $col) {
+      $row[] = $col;
+    }
+
+    // Add a row for the exportable status.
+    if (!empty($this->entityInfo['exportable'])) {
+      $row[] = array('data' => array(
+        '#theme' => 'entity_status',
+        '#status' => $entity->{$this->statusKey},
+      ));
+    }
+    // In case this is a bundle, we add links to the field ui tabs.
+    $field_ui = !empty($this->entityInfo['bundle of']) && module_exists('field_ui');
+    // For exportable entities we add an export link.
+    $exportable = !empty($this->entityInfo['exportable']);
+    $colspan = 3;
+    $colspan = $field_ui ? $colspan + 2 : $colspan;
+    $colspan = $exportable ? $colspan + 1 : $colspan;
+
+    // Add operations depending on the status.
+    if (entity_has_status($this->entityType, $entity, ENTITY_FIXED)) {
+      $row[] = array('data' => l(t('clone'), $this->path . '/manage/' . $id . '/clone'), 'colspan' => $colspan);
+    }
+    else {
+      $row[] = l(t('edit'), $this->path . '/' . $id . '/edit');
+
+      if ($field_ui) {
+        $row[] = l(t('manage fields'), $this->path . '/manage/' . $id . '/fields');
+        $row[] = l(t('manage display'), $this->path . '/manage/' . $id . '/display');
+      }
+
+      $row[] = l(t('clone'), $this->path . '/' . $id . '/clone');
+      if (empty($this->entityInfo['exportable']) || !entity_has_status($this->entityType, $entity, ENTITY_IN_CODE)) {
+        $row[] = l(t('delete'), $this->path . '/' . $id . '/delete', array('query' => drupal_get_destination()));
+      }
+      elseif (entity_has_status($this->entityType, $entity, ENTITY_OVERRIDDEN)) {
+        $row[] = l(t('revert'), $this->path . '/' . $id . '/revert', array('query' => drupal_get_destination()));
+      }
+      else {
+        $row[] = '';
+      }
+    }
+    if ($exportable) {
+      $row[] = l(t('export'), $this->path . '/' . $id . '/export');
+    }
+    return $row;
   }
 }

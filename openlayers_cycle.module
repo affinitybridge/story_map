@@ -18,6 +18,7 @@ function openlayers_cycle_ctools_plugin_api($module, $api) {
 function openlayers_cycle_entity_info() {
   $info['openlayers_cycle_story'] = array(
     'label' => t('Story'),
+    'plural label' => t('Stories'),
     'controller class' => 'EntityAPIControllerExportable',
     'metadata controller class' => FALSE,
     'entity class' => 'OpenlayersCycleStory',
@@ -31,7 +32,7 @@ function openlayers_cycle_entity_info() {
     ),
     'access callback' => 'openlayers_cycle_story_access',
     'admin ui' => array(
-      'path' => 'admin/stories',
+      'path' => 'story',
       'file' => 'openlayers_cycle.admin.inc',
       'controller class' => 'OpenlayersCycleStoryUIController',
       'menu wildcard' => '%openlayers_cycle_story',
@@ -98,9 +99,11 @@ function openlayers_cycle_entity_property_info() {
       'schema field' => 'description',
       'sanitize' => 'filter_xss',
     ),
+    /*
     'options' => array(
     
     ),
+     */
     'enabled' => array(
       'label' => t('Enabled'),
       'type' => 'boolean',
@@ -133,17 +136,6 @@ function openlayers_cycle_story_load($name) {
 function openlayers_cycle_get_stories($name = NULL) {
   $stories = entity_load_multiple_by_name('openlayers_cycle_story', isset($name) ? array($name) : FALSE);
   return isset($name) ? reset($stories) : $stories;
-}
-
-function openlayers_cycle_story_page_title($story) {
-  return $story->name;
-}
-
-function openlayers_cycle_story_page_view($story, $view_mode = 'full') {
-  $controller = entity_get_controller('openlayers_cycle_story');
-  $content = $controller->view(array($story->internalIdentifier() => $story));
-
-  return $content;
 }
 
 /**
