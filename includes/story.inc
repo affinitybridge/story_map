@@ -50,7 +50,7 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
       'page arguments' => array($this->entityType . '_overview_form', $this->entityType),
       'description' => 'Manage ' . $plural_label . '.',
       'access callback' => 'entity_access',
-      'access arguments' => array('view', $this->entityType),
+      'access arguments' => array('update', $this->entityType),
       'file' => 'includes/entity.ui.inc',
     );
 
@@ -203,14 +203,16 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
       }
 
       $row[] = l(t('clone'), $this->path . '/' . $id . '/clone');
-      if (empty($this->entityInfo['exportable']) || !entity_has_status($this->entityType, $entity, ENTITY_IN_CODE)) {
-        $row[] = l(t('delete'), $this->path . '/' . $id . '/delete', array('query' => drupal_get_destination()));
-      }
-      elseif (entity_has_status($this->entityType, $entity, ENTITY_OVERRIDDEN)) {
-        $row[] = l(t('revert'), $this->path . '/' . $id . '/revert', array('query' => drupal_get_destination()));
-      }
-      else {
-        $row[] = '';
+      if (entity_access('delete', $this->entityType, $entity)) {
+        if (empty($this->entityInfo['exportable']) || !entity_has_status($this->entityType, $entity, ENTITY_IN_CODE)) {
+          $row[] = l(t('delete'), $this->path . '/' . $id . '/delete', array('query' => drupal_get_destination()));
+        }
+        elseif (entity_has_status($this->entityType, $entity, ENTITY_OVERRIDDEN)) {
+          $row[] = l(t('revert'), $this->path . '/' . $id . '/revert', array('query' => drupal_get_destination()));
+        }
+        else {
+          $row[] = '';
+        }
       }
     }
     if ($exportable) {

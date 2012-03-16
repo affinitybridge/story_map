@@ -20,6 +20,9 @@ function openlayers_cycle_story_form($form, &$form_state, $story, $op = 'edit') 
     '#maxlength' => 32,
     '#description' => t('A unique machine-readable name for this story. It must only contain lowercase letters, numbers, and underscores.'),
   );
+  if ($op == 'edit') {
+    $form['machine_name']['#disabled'] = TRUE;
+  }
 
   $options = array();
   $maps = openlayers_maps();

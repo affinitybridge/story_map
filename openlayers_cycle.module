@@ -31,6 +31,9 @@ function openlayers_cycle_menu() {
  */
 function openlayers_cycle_permission() {
   return array(
+    'view stories' => array(
+      'title' => t('View stories'),
+    ),
     'create stories' => array(
       'title' => t('Create stories'),
     ),
@@ -163,6 +166,7 @@ function openlayers_cycle_entity_property_info() {
  */
 function openlayers_cycle_story_access($op, $entity_info = NULL, $account = NULL) {
   switch ($op) {
+    case 'view':
     case 'create':
     case 'update':
     case 'delete':
@@ -263,8 +267,7 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
 
   $features = array();
   foreach (entity_metadata_wrapper("list<node>", $nodes) as $index => $wrapper) {
-    // TODO: Need to know which field on node is a geofield.
-    $geofield = openlayers_cycle_get_default_geofields($node->type);
+    $geofield = openlayers_cycle_get_default_geofields($wrapper->getBundle());
     $geodata = $wrapper->{$geofield}->value();
 
     // Skip item id geodata is empty/invalid.
