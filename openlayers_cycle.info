@@ -3,4 +3,6 @@ description = ""
 core = 7.x
 package = OpenLayers
 dependencies[] = openlayers
+dependencies[] = entity
+dependencies[] = geofield
 files[] = includes/story.inc

@@ -27,6 +27,23 @@ function openlayers_cycle_menu() {
 }
 
 /**
+ * Implements hook_permission().
+ */
+function openlayers_cycle_permission() {
+  return array(
+    'create stories' => array(
+      'title' => t('Create stories'),
+    ),
+    'update stories' => array(
+      'title' => t('Edit stories'),
+    ),
+    'delete stories' => array(
+      'title' => t('Delete stories'),
+    ),
+  );
+}
+
+/**
  * Implements hook_ctools_plugin_api().
  */
 function openlayers_cycle_ctools_plugin_api($module, $api) {
@@ -141,8 +158,19 @@ function openlayers_cycle_entity_property_info() {
   return $info;
 }
 
-function openlayers_cycle_story_access($op, $type = NULL, $account = NULL) {
-  return user_access('administer content', $account);
+/**
+ * Access callback for story entity operations.
+ */
+function openlayers_cycle_story_access($op, $entity_info = NULL, $account = NULL) {
+  switch ($op) {
+    case 'create':
+    case 'update':
+    case 'delete':
+      return user_access($op . " stories", $account);
+
+    default:
+      return user_access('administer content', $account);
+  }
 }
 
 /**
