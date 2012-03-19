@@ -5,4 +5,5 @@ package = OpenLayers
 dependencies[] = openlayers_ui
 dependencies[] = entity
 dependencies[] = geofield
+dependencies[] = nodequeue
 files[] = includes/story.inc
