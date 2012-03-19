@@ -44,7 +44,7 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
     $wildcard = isset($this->entityInfo['admin ui']['menu wildcard']) ? $this->entityInfo['admin ui']['menu wildcard'] : '%entity_object';
     $plural_label = isset($this->entityInfo['plural label']) ? $this->entityInfo['plural label'] : $this->entityInfo['label'] . 's';
 
-    $items[$this->path] = array(
+    $items['admin/content/stories'] = array(
       'title' => $plural_label,
       'page callback' => 'drupal_get_form',
       'page arguments' => array($this->entityType . '_overview_form', $this->entityType),
