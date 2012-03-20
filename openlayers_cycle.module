@@ -86,6 +86,7 @@ function openlayers_cycle_entity_info() {
     'entity class' => 'OpenlayersCycleStory',
     'base table' => 'openlayers_cycle_story',
     'module' => 'openlayers_cycle',
+    'bundles' => array(),
     'exportable' => TRUE,
     'entity keys' => array(
       'id' => 'id',
@@ -216,47 +217,14 @@ function openlayers_cycle_get_stories($name = NULL) {
  * Implements hook_openlayers_cycle_story_presave().
  */
 function openlayers_cycle_openlayers_cycle_story_presave($story) {
-  // Inserting.
-  if ($story->is_new) {
-    $default_geofields = openlayers_cycle_get_default_geofields();
-    $types = array_keys($default_geofields);
-
-    $queue = array(
-      'name' => $story->machine_name,
-      'title' => $story->name,
-      'subqueue_title' => $story->name,
-      'size' => 0,
-      'link' => t('Add to @story.', array('@story' => $story->name)),
-      'link_remove' => t('Remove from @story.', array('@story' => $story->name)),
-      'owner' => 'nodequeue',
-      'show_in_links' => (int) TRUE,
-      'show_in_tab' => (int) TRUE,
-      'show_in_ui' => (int) FALSE,
-      'reverse' => (int) FALSE,
-      'reference' => (int) FALSE,
-      'i18n' => (int) FALSE,
-      'types' => array_combine($types, $types),
-      'roles' => array(),
-      'add_subqueue' => array(
-        $story->name,
-      ),
-    );
-    if (isset($story->options['queue'])) {
-      $queue = $story->options['queue'] + $queue;
-    }
-
-    $queue = (object) $queue;
-    $story->qid = nodequeue_save($queue);
-    $story->queue = $story->machine_name;
-  }
+  $story->refreshQueue();
 }
 
 /**
  * Implements hook_openlayers_cycle_story_delete().
  */
 function openlayers_cycle_openlayers_cycle_story_delete($story) {
-  $queue = nodequeue_load_queue_by_name($story->queue);
-  nodequeue_delete($queue->qid);
+  nodequeue_delete($story->getQueue()->qid);
 }
 
 /**
@@ -265,25 +233,16 @@ function openlayers_cycle_openlayers_cycle_story_delete($story) {
  */
 function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langcode) {
   $map = openlayers_map_load($story->options['map']);
-
-  $queue = nodequeue_load_queue_by_name($story->queue);
-  // There should never be more than one subqueue, but good to check just in
-  // case.
-  if ($queue->subqueues != 1) {
-    // Render map anyway.
-    $story->content['map']['#markup'] = openlayers_render_map($map);
-    return;
-  }
-
-  // Crazy dance to get the contents of the queue.
-  $sqids = nodequeue_load_subqueues_by_queue($queue->qid);
-  list($sqid) = array_keys($sqids);
-  // Load all the nodes.
-  $nodes = nodequeue_load_nodes($sqid, FALSE, 0, FALSE);
+  $nodes = $story->getQueueNodes();
 
   $features = array();
   foreach (entity_metadata_wrapper("list<node>", $nodes) as $index => $wrapper) {
     $geofield = openlayers_cycle_get_default_geofields($wrapper->getBundle());
+
+    if (!isset($wrapper->{$geofield})) {
+      continue;
+    }
+
     $geodata = $wrapper->{$geofield}->value();
 
     // Skip item id geodata is empty/invalid.

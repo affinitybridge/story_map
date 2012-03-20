@@ -61,20 +61,29 @@ function openlayers_cycle_story_form_submit($form, &$form_state) {
   form_state_values_clean($form_state);
   $values = $form_state['values'];
 
-  $definition = array(
-    'name' => $values['name'],
-    'machine_name' => $values['machine_name'],
-    'options' => array(
-      'map' => $values['map'],
-    ),
-  );
+  switch ($form_state['op']) {
+    case 'add':
+      $definition = array(
+        'name' => $values['name'],
+        'machine_name' => $values['machine_name'],
+        'options' => array(
+          'map' => $values['map'],
+        ),
+      );
 
-  if (!($story = entity_create('openlayers_cycle_story', $definition))) {
-    // TODO: Handle error.
-    return;
+      if (!($story = entity_create('openlayers_cycle_story', $definition))) {
+        // TODO: Handle error.
+        return;
+      }
+      break;
+    case 'edit':
+      $story = $form_state['openlayers_cycle_story'];
+      $story->name = $values['name'];
+      $story->options['map'] = $values['map'];
+      break;
   }
-  $story->save();
 
+  $story->save();
   $form_state['redirect'] = "story/{$story->identifier()}/edit/sequence";
 }
 

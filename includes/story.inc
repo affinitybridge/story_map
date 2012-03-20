@@ -15,6 +15,91 @@ class OpenlayersCycleStory extends Entity {
   }
 
   /**
+   * Convenience method ensure a story's queue stays up-to-date.
+   */
+  public function refreshQueue() {
+    $this->ensureQueue();
+  }
+
+  /**
+   * Convenience method to get a story's queue.
+   */
+  public function getQueue() {
+    return $this->ensureQueue();
+  }
+
+  /**
+   * Get all the nodes from the subqueue of a story's queue.
+   */
+  public function getQueueNodes() {
+    $queue = $this->getQueue();
+
+    // Crazy dance to get the contents of the queue.
+    $sqids = nodequeue_load_subqueues_by_queue($queue->qid);
+    list($sqid) = array_keys($sqids);
+    // Load all the nodes.
+    $nodes = nodequeue_load_nodes($sqid, FALSE, 0, FALSE);
+
+    return $nodes;
+  }
+
+  /**
+   * Ensures there is a queue associated with this story.
+   */
+  protected function ensureQueue() {
+    if (empty($this->queue)) {
+      $default_geofields = openlayers_cycle_get_default_geofields();
+      $types = array_keys($default_geofields);
+      $queue = $this->createQueue($types);
+    }
+    else {
+      $queue = nodequeue_load_queue_by_name($this->queue);
+    }
+
+    $queue->title = $this->name;
+    $queue->subqueue_title = $this->name;
+
+    $qid = nodequeue_save($queue);
+
+    return $queue;
+  }
+
+  private function createQueue($types = array()) {
+    // Nodequeue has 40 char limit on link text, so we need to ensure name has
+    // been truncated. Allowing 25chars for the name leaves 15 for other text.
+    // TODO: This is stupid.
+    $placeholders = array('@story' => truncate_utf8($this->name, 25, TRUE, TRUE));
+    $queue = array(
+      'name' => $this->identifier(),
+      'title' => $this->name,
+      'subqueue_title' => $this->name,
+      'size' => 0,
+      'link' => t('Add to !story.', $placeholders),
+      'link_remove' => t('Remove from !story.', $placeholders),
+      'owner' => 'nodequeue',
+      'show_in_links' => (int) FALSE,
+      'show_in_tab' => (int) TRUE,
+      'show_in_ui' => (int) FALSE,
+      'reverse' => (int) FALSE,
+      'reference' => (int) FALSE,
+      'i18n' => (int) FALSE,
+      'types' => array_combine($types, $types),
+      'roles' => array(),
+      'add_subqueue' => array(
+        $this->name,
+      ),
+    );
+    if (isset($this->options['queue'])) {
+      $queue = $this->options['queue'] + $queue;
+    }
+
+    $queue = (object) $queue;
+    $this->queue = $this->machine_name;
+
+    return $queue;
+  }
+
+  /**
    * Construct a default URI.
    */
   protected function defaultUri() {
