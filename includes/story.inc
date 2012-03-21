@@ -129,7 +129,7 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
     $wildcard = isset($this->entityInfo['admin ui']['menu wildcard']) ? $this->entityInfo['admin ui']['menu wildcard'] : '%entity_object';
     $plural_label = isset($this->entityInfo['plural label']) ? $this->entityInfo['plural label'] : $this->entityInfo['label'] . 's';
 
-    $items['admin/content/stories'] = array(
+    $items[OPENLAYERS_CYCLE_STORY_INDEX_PATH] = array(
       'title' => $plural_label,
       'page callback' => 'drupal_get_form',
       'page arguments' => array($this->entityType . '_overview_form', $this->entityType),
@@ -304,5 +304,25 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
       $row[] = l(t('export'), $this->path . '/' . $id . '/export');
     }
     return $row;
+  }
+
+  /**
+   * Overridden to fix paths.
+   */
+  public function operationForm($form, &$form_state, $entity, $op) {
+    switch ($op) {
+      case 'revert':
+        $label = entity_label($this->entityType, $entity);
+        $confirm_question = t('Are you sure you want to revert the %entity %label?', array('%entity' => $this->entityInfo['label'], '%label' => $label));
+        return confirm_form($form, $confirm_question, OPENLAYERS_CYCLE_STORY_INDEX_PATH);
+
+      case 'delete':
+        $label = entity_label($this->entityType, $entity);
+        $confirm_question = t('Are you sure you want to delete the %entity %label?', array('%entity' => $this->entityInfo['label'], '%label' => $label));
+        return confirm_form($form, $confirm_question, $this->path);
+
+      default:
+        return parent::operationForm($form, $form_state, $entity, $op);
+    }
   }
 }
