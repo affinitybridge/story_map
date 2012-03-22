@@ -136,7 +136,7 @@ Drupal.openlayers_cycle.offsetCenter = function(offset, lonlat) {
   if (offset.x > 0) {
     dest.x = dest.x + (viewport.w / 2) - offset.x;
   }
-  else if (offset.y < 0) {
+  else if (offset.x < 0) {
     dest.x = dest.x - (viewport.w / 2) - offset.x;
   }
 
