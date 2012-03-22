@@ -96,6 +96,11 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
   map.addControl(selector);
   selector.activate();
 
+  var scroller = new Drupal.openlayers_cycle.MouseWheelHandler(selector, {
+    overScrollableDiv: OpenLayers.Function.bind(cycle.pause, cycle)
+  });
+  scroller.activate();
+
   $(cycle).bind('go', function (evt) {
     var from = evt.originalEvent.from,
         to = evt.originalEvent.to;
@@ -226,5 +231,90 @@ Drupal.openlayers_cycle.asyncPanTo = function(lonlat, callbacks) {
     }
   }
 };
+
+/**
+ * Subclass of OpenLayers.Handler.MouseWheel.
+ * Exposes three wheel event callbacks that get fired depending on the DOM
+ * element being scrolled.
+ *
+ * - overScrollableDiv
+ *    Scrolling on a regular div element, suchas the contents of a popup.
+ * - overLayerDiv
+ *    Scrolling on a specific layer.
+ * - overMapDiv
+ *    Scrolling on the base map (this typically triggers zooming).
+ */
+Drupal.openlayers_cycle.MouseWheelHandler = new OpenLayers.Class(OpenLayers.Handler.MouseWheel, {
+  onWheelEvent: function (e) {
+    // make sure we have a map and check keyboard modifiers
+    if (!this.map || !this.checkModifiers(e)) {
+      return;
+    }
+
+    // Ride up the element's DOM hierarchy to determine if it or any of 
+    //  its ancestors was: 
+    //   * specifically marked as scrollable
+    //   * one of our layer divs
+    //   * the map div
+    //
+    var overScrollableDiv = false;
+    var overLayerDiv = false;
+    var overMapDiv = false;
+
+    var elem = OpenLayers.Event.element(e);
+    while ((elem !== null) && !overMapDiv && !overScrollableDiv) {
+
+      if (!overScrollableDiv) {
+        try {
+          var overflow;
+          if (elem.currentStyle) {
+            overflow = elem.currentStyle.overflow;
+          } else {
+            var style = context.document.defaultView.getComputedStyle(elem, null);
+            overflow = style.getPropertyValue("overflow");
+          }
+          overScrollableDiv = ( overflow && (overflow == "auto") || (overflow == "scroll") );
+        } catch(err) {
+          //sometimes when scrolling in a popup, this causes 
+          // obscure browser error
+        }
+      }
+
+      if (!overLayerDiv) {
+        for(var i=0, len=this.map.layers.length; i<len; i++) {
+          // Are we in the layer div? Note that we have two cases
+          // here: one is to catch EventPane layers, which have a 
+          // pane above the layer (layer.pane)
+          if (elem == this.map.layers[i].div || elem == this.map.layers[i].pane) { 
+            overLayerDiv = true;
+            break;
+          }
+        }
+      }
+      overMapDiv = (elem == this.map.div);
+
+      elem = elem.parentNode;
+    }
+
+    // Trigger callbacks.
+    if (overScrollableDiv) {
+      if (this.callbacks.hasOwnProperty('overScrollableDiv')) {
+        this.callbacks.overScrollableDiv(e);
+      }
+    }
+
+    if (overLayerDiv) {
+      if (this.callbacks.hasOwnProperty('overLayerDiv')) {
+        this.callbacks.overLayerDiv(e);
+      }
+    }
+
+    if (overMapDiv) {
+      if (this.callbacks.hasOwnProperty('overMapDiv')) {
+        this.callbacks.overMapDiv(e);
+      }
+    }
+  }
+});
 
 }(window));
