@@ -18,13 +18,14 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
   var map = data.openlayers,
       layers = [],
       features =  map.getLayersBy('drupalID', 'openlayers_cycle_story_data').pop().features,
+      moving = false,
       cycle = new Drupal.openlayers_cycle.Cycle(map, features.length)
                     .createControls($(map.div).parent().parent());
 
   // Setting map options.
   map.setOptions({
     panMethod: OpenLayers.Easing.Quad.easeInOut,
-    panDuration: 100,
+    panDuration: 200,
     panRatio: 50
   });
 
@@ -40,77 +41,70 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
       continue;
     }
 
+    // Record list of enabled layers.
+    layers.push(layer);
+
     for (var j in layer.features) {
-      var feature = layer.features[j],
-          popup = new OpenLayers.Popup.FramedCloud(
-            feature.drupalFID,
-            feature.geometry.getBounds().getCenterLonLat(),
-            null,
-            feature.data.content
-          );
-      popup.hide();
-      popup.closeOnMove = true;
+      var feature = features[j];
+
+      // Track feature's lonlat.
+      if (!feature.hasOwnProperty('lonlat') || feature.lonlat === null) {
+        feature.lonlat = new OpenLayers.LonLat(feature.geometry.x, feature.geometry.y);
+      }
+
+      // Create popups for features.
+      var popup = new OpenLayers.Popup.FramedCloud(
+        feature.drupalFID,
+        feature.geometry.getBounds().getCenterLonLat(),
+        null,
+        feature.data.content
+      );
 
       // Pausing cycle if click is detected within the popup.
       popup.events.register('click', cycle, cycle.pause);
+      popup.panMapIfOutOfView = false;
 
       feature.popup = popup;
-      map.addPopup(popup);
     }
-
-    // Record list of enabled layers.
-    layers.push(layer);
   }
 
-  // Select feature layer will allow popups to be triggered based on user input.
-  var select = new OpenLayers.Control.SelectFeature(layers, {
-      onSelect: function(feature) {
-        if (feature.hasOwnProperty('popup')) {
-          feature.popup.show();
-        }
-      },
-      onUnselect: function(feature) {
-        if (feature.hasOwnProperty('popup')) {
-          feature.popup.hide();
-        }
-      }
-    }
-  );
-  map.addControl(select);
-  select.activate();
+  var feature_select = function(feature) {
+    // Ensure map has panned by offset to give maximum space for popup.
+    var lonlat = Drupal.openlayers_cycle.offsetCenter.call(map, { x: 100, y: -50 }, feature.lonlat);
 
-  // Define map panning process.
+    if (feature.hasOwnProperty('popup')) {
+      Drupal.openlayers_cycle.asyncPanTo.call(map, lonlat, {
+        finish: function (map) {
+          moving = false;
+          map.addPopup(feature.popup);
+        }
+      });
+    }
+  };
+
+  var feature_unselect = function(feature) {
+    if (feature.hasOwnProperty('popup')) {
+      map.removePopup(feature.popup);
+    }
+  };
+
+  // Select feature layer will allow popups to be triggered based on user input.
+  var selector = new OpenLayers.Control.SelectFeature(layers, {
+    onSelect: feature_select,
+    onUnselect: feature_unselect
+  });
+  map.addControl(selector);
+  selector.activate();
+
   $(cycle).bind('go', function (evt) {
     var from = evt.originalEvent.from,
-        to = evt.originalEvent.to,
-        point = features[to].geometry,
-        lonlat = new OpenLayers.LonLat(point.x, point.y),
-        moving = false;
-
-    // Panning callbacks.
-    var callbacks = {
-      start: OpenLayers.Function.bind(function (map) {
-        var feature = features[from];
-        moving = true;
-
-        feature.popup.closeOnMove = false;
-        feature.popup.hide();
-
-      }, this),
-
-      finish: OpenLayers.Function.bind(function (map) {
-        var feature = features[to];
-
-        feature.popup.panIntoView();
-        feature.popup.show();
-
-        moving = false;
-      }, this)
-    };
+        to = evt.originalEvent.to;
 
     if (!moving) {
-      // Custom implementation of OpenLayers.panTo().
-      Drupal.openlayers_cycle.asyncPanTo.call(map, lonlat, callbacks);
+      moving = true;
+
+      selector.unselect(features[from]);
+      selector.select(features[to]);
       return true;
     }
 
@@ -124,6 +118,30 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
 
 // Ensure namespace.
 Drupal.openlayers_cycle = Drupal.openlayers_cycle || {};
+
+Drupal.openlayers_cycle.offsetCenter = function(offset, lonlat) {
+  lonlat = lonlat || this.getCachedCenter();
+
+  // Perform offset adjustment.
+  var dest = this.getPixelFromLonLat(lonlat);
+  var viewport = this.getSize();
+
+  if (offset.y > 0) {
+    dest.y = dest.y + (viewport.h / 2) - offset.y;
+  }
+  else if (offset.y < 0) {
+    dest.y = dest.y - (viewport.h / 2) - offset.y;
+  }
+
+  if (offset.x > 0) {
+    dest.x = dest.x + (viewport.w / 2) - offset.x;
+  }
+  else if (offset.y < 0) {
+    dest.x = dest.x - (viewport.w / 2) - offset.x;
+  }
+
+  return this.getLonLatFromPixel(dest);
+};
 
 /**
  * Custom implementation of OpenLayers.panTo().
@@ -161,6 +179,7 @@ Drupal.openlayers_cycle.asyncPanTo = function(lonlat, callbacks) {
 
     var from = this.getPixelFromLonLat(center);
     var to = this.getPixelFromLonLat(lonlat);
+
     var vector = { x: to.x - from.x, y: to.y - from.y };
     var last = { x: 0, y: 0 };
 
