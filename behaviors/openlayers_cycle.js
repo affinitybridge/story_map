@@ -77,6 +77,7 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
         finish: function (map) {
           moving = false;
           map.addPopup(feature.popup);
+          Drupal.attachBehaviors();
         }
       });
     }
