@@ -253,11 +253,12 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
       continue;
     }
 
+    $build = node_view($wrapper->value(), 'openlayers_cycle_story_popup');
     $features[$index] = array(
       'projection' => '4326',
       'wkt' => 'POINT(' . $geodata['lon'] . ' ' . $geodata['lat'] . ')',
       'attributes' => array(
-        'content' => drupal_render(node_view($wrapper->value(), 'openlayers_cycle_story_popup')),
+        'content' => drupal_render($build),
       ),
     );
   }
