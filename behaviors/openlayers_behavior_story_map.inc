@@ -1,19 +1,19 @@
 <?php
 
-class openlayers_cycle extends openlayers_behavior {
+class OpenLayersBehaviourStoryMap extends openlayers_behavior {
   
   /**
    * Render.
    */
   function render(&$map) {
-    if (isset($map['openlayers_cycle_story_features'])) {
-      $features = $map['openlayers_cycle_story_features'];
+    if (isset($map['openlayers_behavior_story_map_features'])) {
+      $features = $map['openlayers_behavior_story_map_features'];
       if (!empty($features)) {
-        $map['layers']['openlayers_cycle_story_data']['features'] = $features;
-        drupal_add_js(drupal_get_path('module', 'openlayers_cycle') . '/lib/cycle.js');
-        drupal_add_js(drupal_get_path('module', 'openlayers_cycle') . '/behaviors/openlayers_cycle.js');
+        $map['layers']['story_map_data']['features'] = $features;
+        drupal_add_js(drupal_get_path('module', 'story_map') . '/lib/cycle.js');
+        drupal_add_js(drupal_get_path('module', 'story_map') . '/behaviors/openlayers_behavior_story_map.js');
 
-        $this->options['layers']['openlayers_cycle_story_data'] = 'openlayers_cycle_story_data';
+        $this->options['layers']['story_map_data'] = 'story_map_data';
       }
     }
 

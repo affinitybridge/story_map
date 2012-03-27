@@ -13,11 +13,11 @@ var $ = context.jQuery,
 /**
  * OpenLayers cycle behavior
  */
-Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
+Drupal.openlayers.addBehavior('openlayers_behavior_story_map', function (data, options) {
 
   var map = data.openlayers,
       layers = [],
-      features =  map.getLayersBy('drupalID', 'openlayers_cycle_story_data').pop().features,
+      features =  map.getLayersBy('drupalID', 'story_map_data').pop().features,
       moving = false,
       cycle = new Drupal.openlayers_cycle.Cycle(map, features.length)
                     .createControls($(map.div).parent().parent());
@@ -77,6 +77,7 @@ Drupal.openlayers.addBehavior('openlayers_cycle', function (data, options) {
         finish: function (map) {
           moving = false;
           map.addPopup(feature.popup);
+          // TODO: This is potentially slow.
           Drupal.attachBehaviors();
         }
       });
