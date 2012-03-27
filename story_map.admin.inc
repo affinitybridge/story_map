@@ -164,5 +164,5 @@ function story_map_config_manage_form_submit($form, &$form_state) {
     $geofields[$type] = $values[$type . '_field'];
   }
   variable_set('story_map_geofields', $geofields);
-  drupal_set_message('OpenLayers Cycle settings saved.', 'status');
+  drupal_set_message('Story map settings saved.', 'status');
 }

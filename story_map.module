@@ -8,16 +8,16 @@ define('STORY_MAP_STORY_INDEX_PATH', 'admin/content/stories');
 function story_map_menu() {
   $items = array();
 
-  $items['admin/config/openlayers-cycle'] = array(
-    'title' => 'OpenLayers Cycle',
-    'description' => 'OpenLayers Cycle global configuration.',
+  $items['admin/config/story-map'] = array(
+    'title' => 'Story map',
+    'description' => 'Story map global configuration.',
     'position' => 'right',
     'weight' => -20,
     'page callback' => 'system_admin_menu_block_page',
     'access arguments' => array('administer site configuration'),
   );
-  $items['admin/config/openlayers-cycle/manage'] = array(
-    'title' => 'Manage OpenLayers Cycle configuration.',
+  $items['admin/config/story-map/manage'] = array(
+    'title' => 'Manage Story map configuration.',
     'description' => 'Manage active Tilestache configuration.',
     'access arguments' => array('administer site configuration'),
     'page callback' => 'drupal_get_form',
@@ -114,7 +114,7 @@ function story_map_entity_info() {
  */
 function story_map_entity_info_alter(&$entity_info) {
   $view_mode = array(
-    'label' => t('Openlayers story popup'),
+    'label' => t('Story map story popup'),
     'custom settings' => FALSE,
   );
   foreach ($entity_info as $entity => &$info) {
@@ -278,7 +278,7 @@ function story_map_story_map_story_view($story, $view_mode, $langcode) {
 function story_map_openlayers_behaviors() {
   return array(
     'openlayers_behavior_story_map' => array(
-      'title' => t('OpenLayers cycle'),
+      'title' => t('Story map'),
       'description' => t(''),
       'behavior' => array(
         'path' => drupal_get_path('module', 'story_map') .'/behaviors',
@@ -298,7 +298,7 @@ function story_map_openlayers_layers() {
 
   $layer->api_version = 1;
   $layer->name = 'openlayers_behavior_story_map_story_data';
-  $layer->title = t('Map story data.');
+  $layer->title = t('Story map story data.');
   $layer->description = t('Placeholder layer for map story data.');
 
   $layer->data = array(
