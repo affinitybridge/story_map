@@ -1,6 +1,6 @@
 <?php
 
-class OpenlayersCycleStory extends Entity {
+class StoryMapStory extends Entity {
 
   public $id = 0;
   public $name = '';
@@ -11,7 +11,7 @@ class OpenlayersCycleStory extends Entity {
   public $queue;
 
   public function __construct(array $values = array(), $entityType = NULL) {
-    parent::__construct($values, 'openlayers_cycle_story');
+    parent::__construct($values, 'story_map_story');
   }
 
   /**
@@ -48,7 +48,7 @@ class OpenlayersCycleStory extends Entity {
    */
   protected function ensureQueue() {
     if (empty($this->queue)) {
-      $default_geofields = openlayers_cycle_get_default_geofields();
+      $default_geofields = story_map_get_default_geofields();
       $types = array_keys($default_geofields);
       $queue = $this->createQueue($types);
     }
@@ -119,7 +119,7 @@ class OpenlayersCycleStory extends Entity {
  * Responsible for all UI representations of story entities.
  * Most of the heavy lifting for the admin interface is provided by EntityAPI.
  */
-class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
+class StoryMapStoryUIController extends EntityDefaultUIController {
   /**
    * Overridden to provide a page callback for regular story view.
    */
@@ -129,7 +129,7 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
     $wildcard = isset($this->entityInfo['admin ui']['menu wildcard']) ? $this->entityInfo['admin ui']['menu wildcard'] : '%entity_object';
     $plural_label = isset($this->entityInfo['plural label']) ? $this->entityInfo['plural label'] : $this->entityInfo['label'] . 's';
 
-    $items[OPENLAYERS_CYCLE_STORY_INDEX_PATH] = array(
+    $items[STORY_MAP_STORY_INDEX_PATH] = array(
       'title' => $plural_label,
       'page callback' => 'drupal_get_form',
       'page arguments' => array($this->entityType . '_overview_form', $this->entityType),
@@ -150,9 +150,9 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
     );
 
     $items[$this->path . '/' . $wildcard] = array(
-      'title callback' => 'openlayers_cycle_story_page_title',
+      'title callback' => 'story_map_story_page_title',
       'title arguments' => array($id_count),
-      'page callback' => 'openlayers_cycle_story_page_view',
+      'page callback' => 'story_map_story_page_view',
       'page arguments' => array($id_count),
       'access callback' => 'entity_access',
       'access arguments' => array('view', $this->entityType, $id_count),
@@ -179,7 +179,7 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
 
     $items[$this->path . '/' . $wildcard . '/edit/sequence'] = array(
       'title' => t('Edit story sequence'),
-      'page callback' => 'openlayers_cycle_story_manage_sequence',
+      'page callback' => 'story_map_story_manage_sequence',
       'page arguments' => array($id_count),
       'access callback' => 'entity_access',
       'access arguments' => array('update', $this->entityType, $id_count),
@@ -314,7 +314,7 @@ class OpenlayersCycleStoryUIController extends EntityDefaultUIController {
       case 'revert':
         $label = entity_label($this->entityType, $entity);
         $confirm_question = t('Are you sure you want to revert the %entity %label?', array('%entity' => $this->entityInfo['label'], '%label' => $label));
-        return confirm_form($form, $confirm_question, OPENLAYERS_CYCLE_STORY_INDEX_PATH);
+        return confirm_form($form, $confirm_question, STORY_MAP_STORY_INDEX_PATH);
 
       case 'delete':
         $label = entity_label($this->entityType, $entity);
