@@ -1,7 +1,7 @@
 <?php
 
 function openlayers_cycle_uninstall() {
-  variable_delete('openlayers_cycle_geofields');
+  variable_del('openlayers_cycle_geofields');
 }
 
 /**

@@ -1,8 +1,7 @@
-name = OpenLayers cycle
+name = Map stories
 description = ""
 core = 7.x
-package = OpenLayers
-dependencies[] = openlayers_ui
+package = Mapping
 dependencies[] = entity
 dependencies[] = geofield
 dependencies[] = nodequeue
