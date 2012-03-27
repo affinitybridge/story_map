@@ -1,4 +1,4 @@
-name = Map stories
+name = Story map
 description = ""
 core = 7.x
 package = Mapping

@@ -1,6 +1,6 @@
 <?php
 
-function openlayers_cycle_story_form($form, &$form_state, $story, $op = 'edit') {
+function story_map_story_form($form, &$form_state, $story, $op = 'edit') {
   $form['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Story name'),
@@ -15,7 +15,7 @@ function openlayers_cycle_story_form($form, &$form_state, $story, $op = 'edit') 
     '#type' => 'machine_name',
     '#default_value' => isset($story->machine_name) ? $story->machine_name : '',
     '#machine_name' => array(
-      'exists' => 'openlayers_cycle_story_machine_name_exists',
+      'exists' => 'story_map_story_machine_name_exists',
     ),
     '#maxlength' => 32,
     '#description' => t('A unique machine-readable name for this story. It must only contain lowercase letters, numbers, and underscores.'),
@@ -27,7 +27,7 @@ function openlayers_cycle_story_form($form, &$form_state, $story, $op = 'edit') 
   $options = array();
   $maps = openlayers_maps();
   foreach ($maps as $name => $map) {
-    if (isset($map->data['behaviors']['openlayers_cycle'])) {
+    if (isset($map->data['behaviors']['openlayers_behavior_story_map'])) {
       $options[$name] = $map->title;
     }
   }
@@ -57,7 +57,7 @@ function openlayers_cycle_story_form($form, &$form_state, $story, $op = 'edit') 
   return $form;
 }
 
-function openlayers_cycle_story_form_submit($form, &$form_state) {
+function story_map_story_form_submit($form, &$form_state) {
   form_state_values_clean($form_state);
   $values = $form_state['values'];
 
@@ -71,13 +71,13 @@ function openlayers_cycle_story_form_submit($form, &$form_state) {
         ),
       );
 
-      if (!($story = entity_create('openlayers_cycle_story', $definition))) {
+      if (!($story = entity_create('story_map_story', $definition))) {
         // TODO: Handle error.
         return;
       }
       break;
     case 'edit':
-      $story = $form_state['openlayers_cycle_story'];
+      $story = $form_state['story_map_story'];
       $story->name = $values['name'];
       $story->options['map'] = $values['map'];
       break;
@@ -87,29 +87,29 @@ function openlayers_cycle_story_form_submit($form, &$form_state) {
   $form_state['redirect'] = "story/{$story->identifier()}/edit/sequence";
 }
 
-function openlayers_cycle_story_page_title($story) {
+function story_map_story_page_title($story) {
   return $story->name;
 }
 
-function openlayers_cycle_story_page_view($story, $view_mode = 'full') {
-  $controller = entity_get_controller('openlayers_cycle_story');
+function story_map_story_page_view($story, $view_mode = 'full') {
+  $controller = entity_get_controller('story_map_story');
   $content = $controller->view(array($story->internalIdentifier() => $story));
 
   return $content;
 }
 
-function openlayers_cycle_story_manage_sequence($story) {
+function story_map_story_manage_sequence($story) {
   module_load_include('inc', 'nodequeue', 'includes/nodequeue.admin');
   $queue = nodequeue_load_queue_by_name($story->queue);
   return nodequeue_admin_view($queue);
 }
 
-function openlayers_cycle_config_manage_form($form, &$form_state) {
-  $defaults = openlayers_cycle_get_default_geofields();
+function story_map_config_manage_form($form, &$form_state) {
+  $defaults = story_map_get_default_geofields();
   $names = node_type_get_names();
 
   $type_options = array();
-  $field_options = openlayers_cycle_get_all_geofields();
+  $field_options = story_map_get_all_geofields();
   foreach ($field_options as $type => $fields) {
     $type_options[$type] = $names[$type];
   }
@@ -154,7 +154,7 @@ function openlayers_cycle_config_manage_form($form, &$form_state) {
   return $form;
 }
 
-function openlayers_cycle_config_manage_form_submit($form, &$form_state) {
+function story_map_config_manage_form_submit($form, &$form_state) {
   form_state_values_clean($form_state);
   $values = $form_state['values'];
 
@@ -163,6 +163,6 @@ function openlayers_cycle_config_manage_form_submit($form, &$form_state) {
     if (!$enabled) continue;
     $geofields[$type] = $values[$type . '_field'];
   }
-  variable_set('openlayers_cycle_geofields', $geofields);
+  variable_set('story_map_geofields', $geofields);
   drupal_set_message('OpenLayers Cycle settings saved.', 'status');
 }

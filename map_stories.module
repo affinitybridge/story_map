@@ -5,7 +5,7 @@ define('OPENLAYERS_CYCLE_STORY_INDEX_PATH', 'admin/content/stories');
 /**
  * Implements hook_menu().
  */
-function openlayers_cycle_menu() {
+function story_map_menu() {
   $items = array();
 
   $items['admin/config/openlayers-cycle'] = array(
@@ -21,8 +21,8 @@ function openlayers_cycle_menu() {
     'description' => 'Manage active Tilestache configuration.',
     'access arguments' => array('administer site configuration'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('openlayers_cycle_config_manage_form'),
-    'file' => 'openlayers_cycle.admin.inc',
+    'page arguments' => array('story_map_config_manage_form'),
+    'file' => 'story_map.admin.inc',
   );
 
   return $items;
@@ -31,7 +31,7 @@ function openlayers_cycle_menu() {
 /**
  * Implements hook_menu_local_tasks_alter().
  */
-function openlayers_cycle_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+function story_map_menu_local_tasks_alter(&$data, $router_item, $root_path) {
   // Add action link to 'node/add' on 'admin/content' page.
   if ($root_path == OPENLAYERS_CYCLE_STORY_INDEX_PATH) {
     $item = menu_get_item('story/add');
@@ -47,7 +47,7 @@ function openlayers_cycle_menu_local_tasks_alter(&$data, $router_item, $root_pat
 /**
  * Implements hook_permission().
  */
-function openlayers_cycle_permission() {
+function story_map_permission() {
   return array(
     'view stories' => array(
       'title' => t('View stories'),
@@ -67,7 +67,7 @@ function openlayers_cycle_permission() {
 /**
  * Implements hook_ctools_plugin_api().
  */
-function openlayers_cycle_ctools_plugin_api($module, $api) {
+function story_map_ctools_plugin_api($module, $api) {
   if ($module == "openlayers") {
     switch ($api) {
       case 'openlayers_layers':
@@ -79,15 +79,15 @@ function openlayers_cycle_ctools_plugin_api($module, $api) {
 /**
  * Implements hook_entity_info().
  */
-function openlayers_cycle_entity_info() {
-  $info['openlayers_cycle_story'] = array(
+function story_map_entity_info() {
+  $info['story_map_story'] = array(
     'label' => t('Story'),
     'plural label' => t('Stories'),
     'controller class' => 'EntityAPIControllerExportable',
     'metadata controller class' => FALSE,
     'entity class' => 'OpenlayersCycleStory',
-    'base table' => 'openlayers_cycle_story',
-    'module' => 'openlayers_cycle',
+    'base table' => 'story_map_story',
+    'module' => 'story_map',
     'bundles' => array(),
     'exportable' => TRUE,
     'entity keys' => array(
@@ -95,12 +95,12 @@ function openlayers_cycle_entity_info() {
       'label' => 'name',
       'name' => 'machine_name',
     ),
-    'access callback' => 'openlayers_cycle_story_access',
+    'access callback' => 'story_map_story_access',
     'admin ui' => array(
       'path' => 'story',
-      'file' => 'openlayers_cycle.admin.inc',
+      'file' => 'story_map.admin.inc',
       'controller class' => 'OpenlayersCycleStoryUIController',
-      'menu wildcard' => '%openlayers_cycle_story',
+      'menu wildcard' => '%story_map_story',
     ),
     'label callback' => 'entity_class_label',
     'uri callback' => 'entity_class_uri',
@@ -112,14 +112,14 @@ function openlayers_cycle_entity_info() {
 /**
  * Implements hook_entity_info_alter().
  */
-function openlayers_cycle_entity_info_alter(&$entity_info) {
+function story_map_entity_info_alter(&$entity_info) {
   $view_mode = array(
     'label' => t('Openlayers story popup'),
     'custom settings' => FALSE,
   );
   foreach ($entity_info as $entity => &$info) {
     if (isset($info['view modes']) && !empty($info['view modes'])) {
-      $info['view modes']['openlayers_cycle_story_popup'] = $view_mode;
+      $info['view modes']['story_map_story_popup'] = $view_mode;
     }
   }
 }
@@ -127,8 +127,8 @@ function openlayers_cycle_entity_info_alter(&$entity_info) {
 /**
  * Implements hook_entity_property_info().
  */
-function openlayers_cycle_entity_property_info() {
-  $info['openlayers_cycle_story']['properties'] = array(
+function story_map_entity_property_info() {
+  $info['story_map_story']['properties'] = array(
     'id' => array(
       'label' => t('ID'),
       'type' => 'integer',
@@ -183,7 +183,7 @@ function openlayers_cycle_entity_property_info() {
 /**
  * Access callback for story entity operations.
  */
-function openlayers_cycle_story_access($op, $entity_info = NULL, $account = NULL) {
+function story_map_story_access($op, $entity_info = NULL, $account = NULL) {
   switch ($op) {
     case 'view':
     case 'create':
@@ -199,47 +199,47 @@ function openlayers_cycle_story_access($op, $entity_info = NULL, $account = NULL
 /**
  * Determine if the machine name is in use.
  */
-function openlayers_cycle_story_machine_name_exists($machine_name) {
-  $query = 'SELECT 1 FROM {openlayers_cycle_story} WHERE machine_name = :machine_name';
+function story_map_story_machine_name_exists($machine_name) {
+  $query = 'SELECT 1 FROM {story_map_story} WHERE machine_name = :machine_name';
   $exists = db_query_range($query, 0, 1, array(':machine_name' => $machine_name))->fetchField();
   return $exists;
 }
 
 
-function openlayers_cycle_story_load($name) { 
-  return openlayers_cycle_get_stories($name);
+function story_map_story_load($name) { 
+  return story_map_get_stories($name);
 }
 
-function openlayers_cycle_get_stories($name = NULL) {
-  $stories = entity_load_multiple_by_name('openlayers_cycle_story', isset($name) ? array($name) : FALSE);
+function story_map_get_stories($name = NULL) {
+  $stories = entity_load_multiple_by_name('story_map_story', isset($name) ? array($name) : FALSE);
   return isset($name) ? reset($stories) : $stories;
 }
 
 /**
- * Implements hook_openlayers_cycle_story_presave().
+ * Implements hook_story_map_story_presave().
  */
-function openlayers_cycle_openlayers_cycle_story_presave($story) {
+function story_map_story_map_story_presave($story) {
   $story->refreshQueue();
 }
 
 /**
- * Implements hook_openlayers_cycle_story_delete().
+ * Implements hook_story_map_story_delete().
  */
-function openlayers_cycle_openlayers_cycle_story_delete($story) {
+function story_map_story_map_story_delete($story) {
   nodequeue_delete($story->getQueue()->qid);
 }
 
 /**
- * Implements hook_openlayers_cycle_story_view().
+ * Implements hook_story_map_story_view().
  * Prepares features stored in nodequeue and passes them to the openlayers map.
  */
-function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langcode) {
+function story_map_story_map_story_view($story, $view_mode, $langcode) {
   $map = openlayers_map_load($story->options['map']);
   $nodes = $story->getQueueNodes();
 
   $features = array();
   foreach (entity_metadata_wrapper("list<node>", $nodes) as $index => $wrapper) {
-    $geofield = openlayers_cycle_get_default_geofields($wrapper->getBundle());
+    $geofield = story_map_get_default_geofields($wrapper->getBundle());
 
     if (!isset($wrapper->{$geofield})) {
       continue;
@@ -253,7 +253,7 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
       continue;
     }
 
-    $build = node_view($wrapper->value(), 'openlayers_cycle_story_popup');
+    $build = node_view($wrapper->value(), 'story_map_story_popup');
     $features[$index] = array(
       'projection' => '4326',
       'wkt' => 'POINT(' . $geodata['lon'] . ' ' . $geodata['lat'] . ')',
@@ -266,7 +266,7 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
   if (!empty($features)) {
     // Pushing the features through to the openlayers cycle behaviour which
     // will inject them into the placeholder layer.
-    $map->data['openlayers_cycle_story_features'] = $features;
+    $map->data['openlayers_behavior_story_map_features'] = $features;
   }
 
   $story->content['map']['#markup'] = openlayers_render_map($map);
@@ -275,15 +275,15 @@ function openlayers_cycle_openlayers_cycle_story_view($story, $view_mode, $langc
 /**
  * Implements hook_openlayers_behaviors().
  */
-function openlayers_cycle_openlayers_behaviors() {
+function story_map_openlayers_behaviors() {
   return array(
-    'openlayers_cycle' => array(
+    'openlayers_behavior_story_map' => array(
       'title' => t('OpenLayers cycle'),
       'description' => t(''),
       'behavior' => array(
-        'path' => drupal_get_path('module', 'openlayers_cycle') .'/behaviors',
-        'file' =>  'openlayers_cycle.inc',
-        'class' => 'openlayers_cycle',
+        'path' => drupal_get_path('module', 'story_map') .'/behaviors',
+        'file' =>  'openlayers_behavior_story_map.inc',
+        'class' => 'OpenLayersBehaviourStoryMap',
         'parent' => 'openlayers_behavior',
       ),
     ),
@@ -293,13 +293,13 @@ function openlayers_cycle_openlayers_behaviors() {
 /**
  * Implements hook_openlayers_layers().
  */
-function openlayers_cycle_openlayers_layers() {
+function story_map_openlayers_layers() {
   $layer = new stdClass();
 
   $layer->api_version = 1;
-  $layer->name = 'openlayers_cycle_story_data';
-  $layer->title = t('OpenLayers Cycle story data.');
-  $layer->description = t('Placeholder layer for OpenLayers Cycle story data.');
+  $layer->name = 'openlayers_behavior_story_map_story_data';
+  $layer->title = t('Map story data.');
+  $layer->description = t('Placeholder layer for map story data.');
 
   $layer->data = array(
     'projection' => array('4326'),
@@ -316,11 +316,11 @@ function openlayers_cycle_openlayers_layers() {
  * Returns the default geofield to use with the specified content type.
  * Returns FALSE if the specified content type hasn't had a geofield configured.
  */
-function openlayers_cycle_get_default_geofields($type = NULL) {
+function story_map_get_default_geofields($type = NULL) {
   $fields = &drupal_static(__FUNCTION__);
 
   if (!isset($fields)) {
-    $fields = variable_get('openlayers_cycle_geofields', array());
+    $fields = variable_get('story_map_geofields', array());
   }
 
   if ($type) {
@@ -335,7 +335,7 @@ function openlayers_cycle_get_default_geofields($type = NULL) {
  * attached. Each item is an array containing the names of the geofields 
  * attached to that node type.
  */
-function openlayers_cycle_get_all_geofields() {
+function story_map_get_all_geofields() {
   $fields = array();
   foreach (field_info_fields() as $name => $info) {
     if ($info['type'] == 'geofield') {

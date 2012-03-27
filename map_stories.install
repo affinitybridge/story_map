@@ -1,15 +1,15 @@
 <?php
 
-function openlayers_cycle_uninstall() {
-  variable_del('openlayers_cycle_geofields');
+function story_map_uninstall() {
+  variable_del('story_map_geofields');
 }
 
 /**
  * Implements hook_schema().
  */
-function openlayers_cycle_schema() {
-  $schema['openlayers_cycle_story'] = array(
-    'description' => 'Stores all OpenLayers cycle stories.',
+function story_map_schema() {
+  $schema['story_map_story'] = array(
+    'description' => 'Stores all Story Map stories.',
     'fields' => array(
       'id' => array(
         'description' => 'The primary identifier for a story.',
