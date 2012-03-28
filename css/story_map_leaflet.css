@@ -1,0 +1,4 @@
+.leaflet-popup-content-wrapper {
+  height: 300px;
+  overflow: scroll;
+}

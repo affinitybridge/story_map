@@ -25,12 +25,19 @@ function story_map_story_form($form, &$form_state, $story, $op = 'edit') {
   }
 
   $options = array();
-  $maps = openlayers_maps();
-  foreach ($maps as $name => $map) {
-    if (isset($map->data['behaviors']['openlayers_behavior_story_map'])) {
-      $options[$name] = $map->title;
+  if (module_exists('openlayers')) {
+    foreach (openlayers_maps() as $name => $map) {
+      if (isset($map->data['behaviors']['openlayers_behavior_story_map'])) {
+        $options['openlayers::' . $name] = "OpenLayers: {$map->title}";
+      }
     }
   }
+  if (module_exists('leaflet')) {
+    foreach (leaflet_map_get_info() as $name => $map) {
+      $options['leaflet::' . $name] = "Leaflet: {$map['label']}";
+    }
+  }
+
   $form['map'] = array(
     '#type' => 'select',
     '#options' => $options,
