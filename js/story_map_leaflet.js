@@ -28,6 +28,10 @@ Drupal.behaviors.story_map = {
 Drupal.story_map = Drupal.story_map || {};
 
 Drupal.story_map.LeafletStory = function (settings, leaflet, div) {
+  // Sensible default.
+  settings.autoCenter = settings.autoCenter || true;
+
+  this.current = undefined;
   this.features = settings.features;
   this.leaflet = leaflet;
   this.cycle = new Drupal.openlayers_cycle.Cycle(this.features.length)
@@ -36,7 +40,9 @@ Drupal.story_map.LeafletStory = function (settings, leaflet, div) {
   this.bounds = [];
   for (var index in this.features) {
     var feature = this.features[index],
-        lMarker = Drupal.story_map.create_point(feature);
+        latlng = new L.LatLng(feature.lat, feature.lon),
+        icon = feature.icon || undefined,
+        lMarker = Drupal.story_map.create_point(latlng, icon);
 
     if (feature.popup) {
       lMarker.bindPopup(feature.popup, {
@@ -45,11 +51,22 @@ Drupal.story_map.LeafletStory = function (settings, leaflet, div) {
     }
 
     feature.lMarker = lMarker;
-    // TODO: this.leaflet.lMap may not exist yet.
+    feature.latlng = latlng;
+
+    if (settings.autoCenter === true) {
+      this.bounds.push(latlng);
+    }
+
     this.leaflet.lMap.addLayer(lMarker);
   }
 
+  if (this.bounds.length > 0) {
+    this.leaflet.lMap.fitBounds(new L.LatLngBounds(this.bounds));
+  }
+
   $(this.cycle).bind('go', $.proxy(this, 'go'));
+
+  this.bindListeners();
 };
 
 Drupal.story_map.LeafletStory.prototype.go = function (evt) {
@@ -63,32 +80,68 @@ Drupal.story_map.LeafletStory.prototype.go = function (evt) {
   return true;
 };
 
+Drupal.story_map.LeafletStory.prototype.bindListeners = function () {
+  // Defining a bunch of listeners to respond to map events.
+  var pause = $.proxy(this.cycle, 'pause');
+  this.leaflet.lMap.on('zoomend', pause);
+  this.leaflet.lMap.on('mousedown', pause);
 
-Drupal.story_map.create_point = function (definition) {
-  var latlng = new L.LatLng(definition.lat, definition.lon),
-      lMarker;
+  var map_listeners = {
+        // Bind/unbind events to popups as they're created and removed.
+        togglePopup: $.proxy(function (evt) {
+          if (evt.type == 'popupopen') {
+            this.current = evt.popup;
+            $('.leaflet-popup-content-wrapper')
+                .scroll(pause)
+                .click(pause);
+          }
+          else if (evt.type == 'popupclosed') {
+            this.current = undefined;
+            $('.leaflet-popup-content-wrapper')
+                .unbind('scroll', pause)
+                .unbind('click', pause);
+          }
+        }, this),
 
-  if (definition.icon) {
-    var icon = new L.Icon(definition.icon.iconUrl);
+        // Close & open popup to trigger map redraw and thus re-center map.
+        // TODO: Look for a better method of doing this.
+        redrawPopup: $.proxy(function () {
+          if (typeof this.current !== 'undefined') {
+            var popup = this.current;
+            this.leaflet.lMap.closePopup();
+            this.leaflet.lMap.openPopup(popup);
+          }
+        }, this)
+      };
 
-    // override applicable definition defaults
-    if (definition.icon.iconSize) {
-      icon.iconSize = new L.Point(parseInt(definition.icon.iconSize.x, 10), parseInt(definition.icon.iconSize.y, 10));
+  this.leaflet.lMap.on('zoomend', map_listeners.redrawPopup);
+  this.leaflet.lMap.on('popupopen', map_listeners.togglePopup);
+  this.leaflet.lMap.on('popupclose', map_listeners.togglePopup);
+};
+
+Drupal.story_map.create_point = function (latlng, icon) {
+  var lMarker;
+  if (typeof icon !== 'undefined') {
+    var lIcon = new L.Icon(icon.iconUrl);
+
+    // override applicable icon defaults
+    if (icon.hasOwnProperty('iconSize')) {
+      lIcon.iconSize = new L.Point(parseInt(icon.iconSize.x, 10), parseInt(icon.iconSize.y, 10));
     }
-    if (definition.icon.iconAnchor) {
-      icon.iconAnchor = new L.Point(parseFloat(definition.icon.iconAnchor.x), parseFloat(definition.icon.iconAnchor.y));
+    if (icon.hasOwnPropery('iconAnchor')) {
+      lIcon.iconAnchor = new L.Point(parseFloat(icon.iconAnchor.x), parseFloat(icon.iconAnchor.y));
     }
-    if (definition.icon.popupAnchor) {
-      icon.popupAnchor = new L.Point(parseFloat(definition.icon.popupAnchor.x), parseFloat(definition.icon.popupAnchor.y));
+    if (icon.hasOwnPropery('popupAnchor')) {
+      lIcon.popupAnchor = new L.Point(parseFloat(icon.popupAnchor.x), parseFloat(icon.popupAnchor.y));
     }
-    if (definition.icon.shadowUrl !== undefined) {
-      icon.shadowUrl = definition.icon.shadowUrl;
+    if (icon.hasOwnPropery('shadowUrl')) {
+      lIcon.shadowUrl = icon.shadowUrl;
     }
-    if (definition.icon.shadowSize) {
-      icon.shadowSize = new L.Point(parseInt(definition.icon.shadowSize.x, 10), parseInt(definition.icon.shadowSize.y, 10));
+    if (icon.hasOwnPropery('shadowSize')) {
+      lIcon.shadowSize = new L.Point(parseInt(icon.shadowSize.x, 10), parseInt(icon.shadowSize.y, 10));
     }
 
-    lMarker = new L.Marker(latlng, {icon: icon});
+    lMarker = new L.Marker(latlng, {icon: lIcon});
   }
   else {
     lMarker = new L.Marker(latlng);
