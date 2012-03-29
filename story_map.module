@@ -297,7 +297,6 @@ function story_map_story_map_story_view($story, $view_mode, $langcode) {
           'lat' => 58.806150439576
         );
 
-        debug($features);
         $settings = array('features' => $features);
         drupal_add_js(array('story_map_leaflet' => array($settings)), 'setting');
         drupal_add_js($path . '/lib/cycle.js');
