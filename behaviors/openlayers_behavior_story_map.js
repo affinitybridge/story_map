@@ -17,7 +17,7 @@ Drupal.openlayers.addBehavior('openlayers_behavior_story_map', function (data, o
 
   var map = data.openlayers,
       layers = [],
-      features =  map.getLayersBy('drupalID', 'story_map_data').pop().features,
+      features =  map.getLayersBy('drupalID', 'openlayers_behavior_story_map_story_data').pop().features,
       moving = false,
       cycle = new Drupal.openlayers_cycle.Cycle(map, features.length)
                     .createControls($(map.div).parent().parent());
