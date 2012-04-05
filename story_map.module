@@ -409,7 +409,11 @@ function story_map_map_load($compound_name) {
     case 'leaflet':
       if (module_exists('leaflet')) {
         $map = leaflet_map_get_info($name);
-        tilestache_leaflet_include_interaction($name);
+
+        // TODO: Move this into a leaflet callback hook.
+        if (module_exists('tilestache_leaflet')) {
+          tilestache_leaflet_include_interaction($name);
+        }
       }
       break;
 

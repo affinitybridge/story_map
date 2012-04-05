@@ -18,6 +18,11 @@ Drupal.behaviors.story_map = {
       var map_div = $('#' + settings.leaflet[index].mapId);
       map_div.once($.proxy(function () {
         this.stories.push(new Drupal.story_map.LeafletStory(settings.story_map_leaflet[index], settings.leaflet[index], map_div));
+
+        // Ensure behaviors are applied to contents of popups.
+        settings.leaflet[index].lMap.on('popupopen', function () {
+          Drupal.attachBehaviors(context, settings);
+        });
       }, this));
     }, this));
   }

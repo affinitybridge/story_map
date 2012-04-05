@@ -82,16 +82,18 @@ function story_map_story_form_submit($form, &$form_state) {
         // TODO: Handle error.
         return;
       }
+      $form_state['redirect'] = "story/{$story->identifier()}/edit/sequence";
       break;
+
     case 'edit':
       $story = $form_state['story_map_story'];
       $story->name = $values['name'];
       $story->options['map'] = $values['map'];
+      $form_state['redirect'] = "story/{$story->identifier()}";
       break;
   }
 
   $story->save();
-  $form_state['redirect'] = "story/{$story->identifier()}/edit/sequence";
 }
 
 function story_map_story_page_title($story) {
@@ -108,7 +110,9 @@ function story_map_story_page_view($story, $view_mode = 'full') {
 function story_map_story_manage_sequence($story) {
   module_load_include('inc', 'nodequeue', 'includes/nodequeue.admin');
   $queue = nodequeue_load_queue_by_name($story->queue);
-  return nodequeue_admin_view($queue);
+  $form = nodequeue_admin_view($queue);
+  drupal_set_title(t('Edit sequence of %story', array('%story' => entity_label('story_map_story', $story))), TRUE);
+  return $form;
 }
 
 function story_map_config_manage_form($form, &$form_state) {
