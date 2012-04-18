@@ -39,7 +39,7 @@ Drupal.story_map.LeafletStory = function (settings, leaflet, div) {
   this.current = undefined;
   this.features = settings.features;
   this.leaflet = leaflet;
-  this.cycle = new Drupal.openlayers_cycle.Cycle(this.features.length)
+  this.cycle = new Drupal.story_map.Cycle(this.features.length)
               .createControls(div.parent());
 
   this.bounds = [];
