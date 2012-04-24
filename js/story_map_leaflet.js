@@ -119,7 +119,6 @@ Drupal.story_map.LeafletStory.prototype.bindListeners = function () {
         }, this)
       };
 
-  this.leaflet.lMap.on('zoomend', map_listeners.redrawPopup);
   this.leaflet.lMap.on('popupopen', map_listeners.togglePopup);
   this.leaflet.lMap.on('popupclose', map_listeners.togglePopup);
 };
