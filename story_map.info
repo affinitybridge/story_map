@@ -6,3 +6,5 @@ dependencies[] = entity
 dependencies[] = geofield
 dependencies[] = nodequeue
 files[] = includes/story.inc
+files[] = includes/abstract_story_map_driver.inc
+
