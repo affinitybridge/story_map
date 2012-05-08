@@ -20,7 +20,7 @@ Drupal.behaviors.story_map = {
         this.stories.push(new Drupal.story_map.LeafletStory(settings.story_map_leaflet[index], settings.leaflet[index], map_div));
 
         // Ensure behaviors are applied to contents of popups.
-        settings.leaflet[index].lMap.on('popupopen', function () {
+        Drupal.leaflet.maps[settings.leaflet[index].mapId].lMap.on('popupopen', function () {
           Drupal.attachBehaviors(context, settings);
         });
       }, this));
@@ -39,6 +39,7 @@ Drupal.story_map.LeafletStory = function (settings, leaflet, div) {
   this.current = undefined;
   this.features = settings.features;
   this.leaflet = leaflet;
+  this.lMap = Drupal.leaflet.maps[leaflet.mapId].lMap;
   this.cycle = new Drupal.story_map.Cycle(this.features.length)
               .createControls(div.parent());
 
@@ -62,11 +63,11 @@ Drupal.story_map.LeafletStory = function (settings, leaflet, div) {
       this.bounds.push(latlng);
     }
 
-    this.leaflet.lMap.addLayer(lMarker);
+    this.lMap.addLayer(lMarker);
   }
 
   if (this.bounds.length > 0) {
-    this.leaflet.lMap.fitBounds(new L.LatLngBounds(this.bounds));
+    this.lMap.fitBounds(new L.LatLngBounds(this.bounds));
   }
 
   $(this.cycle).bind('go', $.proxy(this, 'go'));
@@ -79,7 +80,7 @@ Drupal.story_map.LeafletStory.prototype.go = function (evt) {
       to = evt.originalEvent.to,
       latlon = new L.LatLng(this.features[to].lat, this.features[to].lon);
 
-  this.leaflet.lMap.panTo(latlon);
+  this.lMap.panTo(latlon);
   this.features[to].lMarker.openPopup();
 
   return true;
@@ -88,8 +89,8 @@ Drupal.story_map.LeafletStory.prototype.go = function (evt) {
 Drupal.story_map.LeafletStory.prototype.bindListeners = function () {
   // Defining a bunch of listeners to respond to map events.
   var pause = $.proxy(this.cycle, 'pause');
-  this.leaflet.lMap.on('zoomend', pause);
-  this.leaflet.lMap.on('mousedown', pause);
+  this.lMap.on('zoomend', pause);
+  this.lMap.on('mousedown', pause);
 
   var map_listeners = {
         // Bind/unbind events to popups as they're created and removed.
@@ -113,14 +114,14 @@ Drupal.story_map.LeafletStory.prototype.bindListeners = function () {
         redrawPopup: $.proxy(function () {
           if (typeof this.current !== 'undefined') {
             var popup = this.current;
-            this.leaflet.lMap.closePopup();
-            this.leaflet.lMap.openPopup(popup);
+            this.lMap.closePopup();
+            this.lMap.openPopup(popup);
           }
         }, this)
       };
 
-  this.leaflet.lMap.on('popupopen', map_listeners.togglePopup);
-  this.leaflet.lMap.on('popupclose', map_listeners.togglePopup);
+  this.lMap.on('popupopen', map_listeners.togglePopup);
+  this.lMap.on('popupclose', map_listeners.togglePopup);
 };
 
 Drupal.story_map.create_point = function (latlng, icon) {
