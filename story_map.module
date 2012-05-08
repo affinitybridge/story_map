@@ -235,37 +235,8 @@ function story_map_story_map_story_delete($story) {
  */
 function story_map_story_map_story_view($story, $view_mode, $langcode) {
   $path = drupal_get_path('module', 'story_map');
-  $details = story_map_map_load($story->options['map']);
-  $module = $details['module'];
-  $map = $details['map'];
+  $driver = story_map_create_map($story->options['map']);
 
-  // TODO: Write "YetAnotherPluginSystem(tm)" or implement ctools plugins.
-  switch ($module) {
-    case 'openlayers':
-      $feature_callback = 'story_map_create_openlayers_feature';
-      $map_callback = 'openlayers_render_map';
-      break;
-
-    case 'leaflet':
-      $feature_callback = 'story_map_create_leaflet_feature';
-      $map_callback = 'leaflet_render_map';
-
-      // TODO: Make this configurable.
-      $map['settings']['zoom'] = 11;
-      $map['center'] = array(
-        'lon' => -122.69202039112,
-        'lat' => 58.806150439576
-      );
-
-      break;
-
-    default:
-      // TODO: Handle error?
-      debug('ERROR: Unknown module type: ' . $module);
-      return;
-  }
-
-  $features = array();
   foreach (entity_metadata_wrapper("list<node>", $story->getQueueNodes()) as $index => $wrapper) {
     $geofield = story_map_get_default_geofields($wrapper->getBundle());
 
@@ -285,37 +256,12 @@ function story_map_story_map_story_view($story, $view_mode, $langcode) {
     $build = node_view($wrapper->value(), 'story_map_story_popup');
     $content = drupal_render($build);
 
-    $features[$index] = $feature_callback($geodata, $content);
+    $driver->addFeature($geodata, $content);
   }
 
-  // TODO: This is what happens when we don't have a plugin system.
-  if (!empty($features)) {
-    switch ($module) {
-      case 'openlayers':
-        // Pushing the features through to the openlayers cycle behaviour which
-        // will inject them into the placeholder layer.
-        $map->data['openlayers_behavior_story_map_features'] = $features;
-        break;
+  drupal_alter('story_map_view', $story, $driver);
 
-      case 'leaflet':
-        $settings = array('features' => $features);
-        drupal_add_js(array('story_map_leaflet' => array($settings)), 'setting');
-        drupal_add_js($path . '/lib/cycle.js');
-        drupal_add_js($path . '/js/story_map_leaflet.js', array(
-          // Ensure this is run after leaflet.drupal.js.
-          'weight' => 1
-        ));
-        drupal_add_css($path . '/css/story_map_leaflet.css');
-        break;
-
-      default:
-        // TODO: Handle error?
-        debug('ERROR: Unknown module: ' . $module);
-        return;
-    }
-  }
-
-  $story->content['map']['#markup'] = $map_callback($map);
+  $story->content['map']['#markup'] = $driver->render();
 }
 
 /**
@@ -396,54 +342,45 @@ function story_map_get_all_geofields() {
   return $fields;
 }
 
-function story_map_map_load($compound_name) {
-  $map = '';
-
-  list($module, $name) = explode('::', $compound_name, 2);
-  switch ($module) {
-    case 'openlayers':
-      if (module_exists('openlayers')) {
-        $map = openlayers_map_load($name);
-      }
-      break;
-
-    case 'leaflet':
-      if (module_exists('leaflet')) {
-        $map = leaflet_map_get_info($name);
-
-        // TODO: Move this into a leaflet callback hook.
-        if (module_exists('tilestache_leaflet')) {
-          tilestache_leaflet_include_interaction($name);
-        }
-      }
-      break;
-
-    default:
-      // TODO: Error?
-      return FALSE;
+function story_map_driver_info() {
+  $drivers = &drupal_static(__FUNCTION__);
+  if (!isset($drivers)) {
+    $drivers = module_invoke_all('story_map_driver_info');
   }
+  drupal_alter('story_map_driver_info', $drivers);
 
-  return array(
-    'module' => $module,
-    'map' => $map,
-  );
+  return $drivers;
 }
 
-function story_map_create_leaflet_feature($geodata, $content) {
+/**
+ * Implements hook_story_map_driver_info().
+ */
+function story_map_story_map_driver_info() {
+  $path = drupal_get_path('module', 'story_map');
   return array(
-    'type' => 'point',
-    'lat' => $geodata['lat'],
-    'lon' => $geodata['lon'],
-    'popup' => $content,
-  );
-}
-
-function story_map_create_openlayers_feature($geodata, $content) {
-  return array(
-    'projection' => '4326',
-    'wkt' => 'POINT(' . $geodata['lon'] . ' ' . $geodata['lat'] . ')',
-    'attributes' => array(
-      'content' => $content,
+    'leaflet' => array(
+      'class' => 'LeafletStoryMap',
+      'file' => $path . '/includes/leaflet_story_map.inc',
+    ),
+    'openlayers' => array(
+      'class' => 'OpenlayersStoryMap',
+      'file' => $path . '/includes/openlayers_story_map.inc',
     ),
   );
+}
+
+/**
+ * Load a map driver.
+ */
+function story_map_create_map($compound_name) {
+  $drivers = story_map_driver_info();
+  list($library, $name) = explode('::', $compound_name, 2);
+
+  if (isset($drivers[$library])) {
+    require_once DRUPAL_ROOT . '/' . $drivers[$library]['file'];
+    return new $drivers[$library]['class']($name);
+  }
+  else {
+    throw new Exception(); // TODO: Name this.
+  }
 }
