@@ -15,11 +15,6 @@ class LeafletStoryMap extends AbstractStoryMapDriver {
       'lon' => -122.69202039112,
       'lat' => 58.806150439576
     );
-
-    // TODO: Move this into a leaflet callback hook.
-    if (module_exists('tilestache_leaflet')) {
-      //tilestache_leaflet_include_interaction($name);
-    }
   }
 
   function addFeature($geodata, $content) {
