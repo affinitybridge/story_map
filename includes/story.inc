@@ -10,6 +10,8 @@ class StoryMapStory extends Entity {
 
   public $queue;
 
+  protected $driver;
+
   public function __construct(array $values = array(), $entityType = NULL) {
     parent::__construct($values, 'story_map_story');
   }
@@ -41,6 +43,17 @@ class StoryMapStory extends Entity {
     $nodes = nodequeue_load_nodes($sqid, FALSE, 0, FALSE);
 
     return $nodes;
+  }
+
+  public function getMap() {
+    $this->ensureDriver();
+    return $this->driver;
+  }
+
+  protected function ensureDriver() {
+    if (empty($this->driver) && isset($this->options['map'])) {
+      $this->driver = story_map_create_map($this->options['map']); 
+    }
   }
 
   /**
