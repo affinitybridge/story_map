@@ -94,17 +94,17 @@ Drupal.story_map.LeafletStory.prototype.bindListeners = function () {
   var map_listeners = {
         // Bind/unbind events to popups as they're created and removed.
         togglePopup: $.proxy(function (evt) {
+          var wrapper = $('.leaflet-popup-content-wrapper');
+
           if (evt.type == 'popupopen') {
             this.current = evt.popup;
-            $('.leaflet-popup-content-wrapper')
-                .scroll(pause)
-                .click(pause);
+            wrapper.scroll(pause).click(pause);
+            $('a', wrapper).click(pause);
           }
           else if (evt.type == 'popupclosed') {
             this.current = undefined;
-            $('.leaflet-popup-content-wrapper')
-                .unbind('scroll', pause)
-                .unbind('click', pause);
+            wrapper.unbind('scroll', pause).unbind('click', pause);
+            $('a', wrapper).unbind('click', pause);
           }
         }, this),
 
