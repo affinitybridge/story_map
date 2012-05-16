@@ -90,7 +90,11 @@ function story_map_entity_info() {
     'entity class' => 'StoryMapStory',
     'base table' => 'story_map_story',
     'module' => 'story_map',
-    'bundles' => array(),
+    'bundles' => array(
+      'story_map_story' => array(
+        'label' => t('Story'),
+      ),
+    ),
     'exportable' => TRUE,
     'entity keys' => array(
       'id' => 'id',
