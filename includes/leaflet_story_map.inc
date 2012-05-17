@@ -32,13 +32,17 @@ class LeafletStoryMap extends AbstractStoryMapDriver {
 
   function render() {
     $path = drupal_get_path('module', 'story_map');
-    $settings = array('features' => $this->features);
-    drupal_add_js(array('story_map_leaflet' => array($settings)), 'setting');
-    drupal_add_js($path . '/lib/cycle.js');
-    drupal_add_js($path . '/js/story_map_leaflet.js', array(
-      // Ensure this is run after leaflet.drupal.js.
-      'weight' => 1
-    ));
+
+    if (!empty($this->features)) {
+      $settings = array('features' => $this->features);
+      drupal_add_js(array('story_map_leaflet' => array($settings)), 'setting');
+      drupal_add_js($path . '/lib/cycle.js');
+      drupal_add_js($path . '/js/story_map_leaflet.js', array(
+        // Ensure this is run after leaflet.drupal.js.
+        'weight' => 1
+      ));
+    }
+
     drupal_add_css($path . '/css/story_map_leaflet.css');
 
     return leaflet_render_map($this->map, $this->overlays);
