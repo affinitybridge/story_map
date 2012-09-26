@@ -31,6 +31,39 @@ function story_map_menu() {
 }
 
 /**
+ * Implements hook_library().
+ */
+function story_map_library() {
+  $path = drupal_get_path('module', 'story_map');
+  $libraries = array();
+
+  $libraries['cycle'] = array(
+    'title' => 'Cycle',
+    'version' => '1.0',
+    'js' => array(
+      $path . '/lib/cycle.js' => array(),
+    ),
+  );
+
+  $libraries['story-map-leaflet'] = array(
+    'title' => 'Leaflet story map driver',
+    'version' => '1.0',
+    'js' => array(
+      $path . '/js/story_map_leaflet.js' => array(),
+    ),
+    'css' => array(
+      $path . '/css/story_map_leaflet.css' => array(),
+    ),
+    'dependencies' => array(
+      array('story_map', 'cycle'),
+      array('leaflet', 'leaflet-drupal'),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
  * Implements hook_menu_local_tasks_alter().
  */
 function story_map_menu_local_tasks_alter(&$data, $router_item, $root_path) {
