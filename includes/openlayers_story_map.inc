@@ -6,7 +6,7 @@ class OpenLayersStoryMap extends AbstractStoryMapDriver {
     $this->map = openlayers_map_load($name);
   }
 
-  function addFeature($geodata, $content) {
+  function addFeature($geodata, $content, $properties = array()) {
     $this->map->data['openlayers_behavior_story_map_features'][] = array(
       'projection' => '4326',
       'wkt' => 'POINT(' . $geodata['lon'] . ' ' . $geodata['lat'] . ')',

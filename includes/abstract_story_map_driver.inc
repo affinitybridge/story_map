@@ -8,7 +8,7 @@ abstract class AbstractStoryMapDriver {
     return $this->map;
   }
 
-  abstract function addFeature($geodata, $content);
+  abstract function addFeature($geodata, $content, $properties = array());
 
   abstract function render();
 }

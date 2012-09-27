@@ -17,11 +17,12 @@ class LeafletStoryMap extends AbstractStoryMapDriver {
     );
   }
 
-  function addFeature($geodata, $properties) {
+  function addFeature($geodata, $content, $properties = array()) {
     $feature = $properties;
     $feature['type'] = 'point';
     $feature['lat'] = $geodata['lat'];
     $feature['lon'] = $geodata['lon'];
+    $feature['popup'] = $content;
     $this->features[] = $feature;
   }
 

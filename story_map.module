@@ -293,12 +293,12 @@ function story_map_story_map_story_view($story, $view_mode, $langcode) {
 
     $properties = array();
     $build = node_view($wrapper->value(), 'story_map_story_popup');
-    $properties['content'] = drupal_render($build);
+    $content = drupal_render($build);
 
     $story_id = $story->identifier();
     drupal_alter('story_map_feature_properties', $properties, $wrapper, $story_id);
 
-    $story->getMap()->addFeature($geodata, $properties);
+    $story->getMap()->addFeature($geodata, $content, $properties);
   }
 
   drupal_alter('story_map_view', $story);
