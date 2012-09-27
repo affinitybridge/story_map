@@ -17,13 +17,12 @@ class LeafletStoryMap extends AbstractStoryMapDriver {
     );
   }
 
-  function addFeature($geodata, $content) {
-    $this->features[] = array(
-      'type' => 'point',
-      'lat' => $geodata['lat'],
-      'lon' => $geodata['lon'],
-      'popup' => $content,
-    );
+  function addFeature($geodata, $properties) {
+    $feature = $properties;
+    $feature['type'] = 'point';
+    $feature['lat'] = $geodata['lat'];
+    $feature['lon'] = $geodata['lon'];
+    $this->features[] = $feature;
   }
 
   function addOverlay($item) {
@@ -31,13 +30,23 @@ class LeafletStoryMap extends AbstractStoryMapDriver {
   }
 
   function render() {
+    $element = array();
+
     if (!empty($this->features)) {
       $settings = array('features' => $this->features);
-      drupal_add_js(array('story_map_leaflet' => array($settings)), 'setting');
-      drupal_add_library('story_map', 'story-map-leaflet');
+      $element['#attached'] = array(
+        'js' => array(
+          array('data' => array('story_map_leaflet' => array($settings)), 'type' => 'setting'),
+        ),
+        'library' => array(
+          array('story_map', 'story-map-leaflet'),
+        ),
+      );
     }
 
-    return leaflet_render_map($this->map, $this->overlays);
+    $element['#markup'] = leaflet_render_map($this->map, $this->overlays);
+
+    return $element;
   }
 
 }

@@ -291,15 +291,19 @@ function story_map_story_map_story_view($story, $view_mode, $langcode) {
       continue;
     }
 
+    $properties = array();
     $build = node_view($wrapper->value(), 'story_map_story_popup');
-    $content = drupal_render($build);
+    $properties['content'] = drupal_render($build);
 
-    $story->getMap()->addFeature($geodata, $content);
+    $story_id = $story->identifier();
+    drupal_alter('story_map_feature_properties', $properties, $wrapper, $story_id);
+
+    $story->getMap()->addFeature($geodata, $properties);
   }
 
   drupal_alter('story_map_view', $story);
 
-  $story->content['map']['#markup'] = $story->getMap()->render();
+  $story->content['map'] = $story->getMap()->render();
 }
 
 /**
