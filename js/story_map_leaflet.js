@@ -126,26 +126,7 @@ Drupal.story_map.LeafletStory.prototype.bindListeners = function () {
 Drupal.story_map.create_point = function (latlng, icon) {
   var lMarker;
   if (typeof icon !== 'undefined') {
-    var lIcon = new L.Icon(icon.iconUrl);
-
-    // override applicable icon defaults
-    if (icon.hasOwnProperty('iconSize')) {
-      lIcon.iconSize = new L.Point(parseInt(icon.iconSize.x, 10), parseInt(icon.iconSize.y, 10));
-    }
-    if (icon.hasOwnPropery('iconAnchor')) {
-      lIcon.iconAnchor = new L.Point(parseFloat(icon.iconAnchor.x), parseFloat(icon.iconAnchor.y));
-    }
-    if (icon.hasOwnPropery('popupAnchor')) {
-      lIcon.popupAnchor = new L.Point(parseFloat(icon.popupAnchor.x), parseFloat(icon.popupAnchor.y));
-    }
-    if (icon.hasOwnPropery('shadowUrl')) {
-      lIcon.shadowUrl = icon.shadowUrl;
-    }
-    if (icon.hasOwnPropery('shadowSize')) {
-      lIcon.shadowSize = new L.Point(parseInt(icon.shadowSize.x, 10), parseInt(icon.shadowSize.y, 10));
-    }
-
-    lMarker = new L.Marker(latlng, {icon: lIcon});
+    lMarker = new L.Marker(latlng, {icon: new L.Icon(icon)});
   }
   else {
     lMarker = new L.Marker(latlng);
