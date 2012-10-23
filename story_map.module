@@ -96,6 +96,9 @@ function story_map_permission() {
     'delete stories' => array(
       'title' => t('Delete stories'),
     ),
+    'administer stories' => array(
+      'title' => t('Administer stories'),
+    ),
   );
 }
 
@@ -126,6 +129,10 @@ function story_map_entity_info() {
     'bundles' => array(
       'story_map_story' => array(
         'label' => t('Story'),
+        'admin' => array(
+          'path' => STORY_MAP_STORY_INDEX_PATH,
+          'access arguments' => array('administer stories'),
+        ),
       ),
     ),
     'exportable' => TRUE,
@@ -143,6 +150,7 @@ function story_map_entity_info() {
     ),
     'label callback' => 'entity_class_label',
     'uri callback' => 'entity_class_uri',
+    'fieldable' => TRUE,
   );
 
   return $info;

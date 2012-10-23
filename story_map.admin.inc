@@ -46,6 +46,8 @@ function story_map_story_form($form, &$form_state, $story, $op = 'edit') {
     '#description' => t('Select a map to tell your story on.'),
   );
 
+  field_attach_form('story_map_story', $story, $form, $form_state);
+
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
@@ -62,6 +64,10 @@ function story_map_story_form($form, &$form_state, $story, $op = 'edit') {
   }
 
   return $form;
+}
+
+function story_map_story_form_validate($form, &$form_state) {
+  field_attach_form_validate('story_map_story', $form_state['story_map_story'], $form, $form_state);
 }
 
 function story_map_story_form_submit($form, &$form_state) {
@@ -92,6 +98,8 @@ function story_map_story_form_submit($form, &$form_state) {
       $form_state['redirect'] = "story/{$story->identifier()}";
       break;
   }
+
+  field_attach_submit('story_map_story', $story, $form, $form_state);
 
   $story->save();
 }
